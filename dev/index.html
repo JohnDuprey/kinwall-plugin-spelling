@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kinwall plugin preview</title>
+  <style>
+    :root { --bg: #FFFBF5; --card: #FFFFFF; --text: #3A2E27; --dim: #7A6B60; --accent: #A5613F; --accent-ink: #FFFFFF; --border: #F1E4D6; }
+    [data-theme="dark"] { --bg: #1C1712; --card: #2A221B; --text: #F3EAE0; --dim: #B3A395; --accent: #FF9E7A; --accent-ink: #2A1A12; --border: #3D3128; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 15px/1.4 system-ui, sans-serif; }
+    body { display: grid; grid-template-rows: auto 1fr auto; gap: 8px; padding: 10px; }
+    .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .bar strong { margin-right: 8px; }
+    select, button { font: inherit; padding: 6px 12px; border-radius: 999px; border: 2px solid var(--border); background: var(--card); color: var(--text); }
+    iframe { width: 100%; height: 100%; border: 2px dashed var(--border); border-radius: 14px; background: var(--card); }
+    #log { max-height: 140px; overflow: auto; margin: 0; padding: 8px; border-radius: 10px; background: var(--card); color: var(--dim); font: 12px ui-monospace, monospace; }
+  </style>
+</head>
+<body>
+  <!-- A stand-in for Kinwall's side of kinwall.js, so you can build without running Kinwall.
+       Serve the repo root (e.g. `python3 -m http.server 8000`) and open http://localhost:8000/dev/.
+       Saved data lives in this page's localStorage. Kinwall itself also forbids network access;
+       this preview doesn't, so check the Limits in README.md. -->
+  <div class="bar">
+    <strong>Kinwall plugin preview</strong>
+    <label>Who's playing <select id="who"></select></label>
+    <label>Theme <select id="theme"><option>light</option><option>dark</option></select></label>
+    <button id="reload">Reload plugin</button>
+    <button id="clear">Clear saved data</button>
+  </div>
+  <iframe id="plugin" title="Plugin" sandbox="allow-scripts"></iframe>
+  <pre id="log"></pre>
+  <script>
+    // Example family; ids are what your plugin sees as ctx.member.id.
+    const MEMBERS = [
+      { id: 'm-alex', name: 'Alex', avatar: '🦊', color: '#FFB86B' },
+      { id: 'm-sam', name: 'Sam', avatar: '🐢', color: '#7AB8FF' },
+      { id: 'm-maya', name: 'Maya', avatar: '🦄', color: '#7ED9A6' },
+      { id: 'm-leo', name: 'Leo', avatar: '🦖', color: '#FF8FA3' },
+    ]
+    const $ = id => document.getElementById(id)
+    const frame = $('plugin')
+    $('who').innerHTML = MEMBERS.map(m => `<option value="${m.id}">${m.avatar} ${m.name}</option>`).join('') + '<option value="">Just playing</option>'
+    const log = line => { $('log').textContent = `${new Date().toLocaleTimeString()}  ${line}\n` + $('log').textContent }
+    const storeKey = scope => `kinwall-dev:${scope}`
+    const read = scope => JSON.parse(localStorage.getItem(storeKey(scope)) || '{}')
+    const write = (scope, data) => localStorage.setItem(storeKey(scope), JSON.stringify(data))
+    const theme = () => {
+      const css = getComputedStyle(document.documentElement)
+      const v = n => css.getPropertyValue(n).trim()
+      return { bg: v('--bg'), card: v('--card'), text: v('--text'), dim: v('--dim'), accent: v('--accent'), accentInk: v('--accent-ink'), border: v('--border'), font: 'system-ui, sans-serif', dark: $('theme').value === 'dark' }
+    }
+    const load = () => { document.documentElement.dataset.theme = $('theme').value; frame.src = '../index.html?' + Date.now() }
+    const reply = (msg, ok, value, error) => frame.contentWindow.postMessage({ kinwall: 1, re: msg.id, ok, value, error }, '*')
+
+    window.addEventListener('message', e => {
+      if (e.source !== frame.contentWindow) return // like Kinwall: only this frame
+      const msg = e.data
+      if (!msg || msg.kinwall !== 1) return
+      const member = MEMBERS.find(m => m.id === $('who').value) || null
+      const scope = msg.shared ? 'shared' : (member ? member.id : '')
+      if (msg.type === 'ready') {
+        frame.contentWindow.postMessage({ kinwall: 1, type: 'context', context: { member, theme: theme(), textScale: 'm', reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches, locale: navigator.language } }, '*')
+        log(`ready → context for ${member ? member.name : 'nobody'}`)
+      } else if (msg.type === 'load') {
+        reply(msg, true, read(scope)); log(`load (${scope || 'just playing'})`)
+      } else if (msg.type === 'save') {
+        // Same limits as Kinwall: 64-character keys, 16 KB per value, 100 keys per person.
+        const text = JSON.stringify(msg.value ?? null)
+        if (typeof msg.key !== 'string' || !msg.key || msg.key.length > 64) return reply(msg, false, undefined, 'key must be 1-64 characters')
+        if (text.length > 16 * 1024) return reply(msg, false, undefined, 'A saved value can be at most 16 KB')
+        const data = read(scope)
+        if (msg.value === null || msg.value === undefined) delete data[msg.key]
+        else if (!(msg.key in data) && Object.keys(data).length >= 100) return reply(msg, false, undefined, 'At most 100 values per person')
+        else data[msg.key] = msg.value
+        write(scope, data); reply(msg, true); log(`save ${msg.key} = ${text} (${scope || 'just playing'})`)
+      } else if (msg.type === 'close') {
+        log('close (Kinwall goes back to Activities)')
+      }
+    })
+    $('who').onchange = load
+    $('theme').onchange = load
+    $('reload').onclick = load
+    $('clear').onclick = () => { Object.keys(localStorage).filter(k => k.startsWith('kinwall-dev:')).forEach(k => localStorage.removeItem(k)); log('cleared saved data'); load() }
+    load()
+  </script>
+</body>
+</html>

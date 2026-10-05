@@ -1,0 +1,19 @@
+/* Kinwall passes the family's theme as --kw-* variables and sets data-theme="light"/"dark" on
+   <html> (see kinwall.js). These fallbacks are for previewing outside Kinwall. */
+:root {
+  --kw-bg: #FFF8F2; --kw-card: #FFFFFF; --kw-text: #3D2B24; --kw-dim: #7A6158; --kw-accent: #E07A55; --kw-accent-ink: #3A1D10; --kw-border: #EADFD6;
+  --kw-font: system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--kw-bg); color: var(--kw-text); font-family: var(--kw-font); }
+main { min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px; text-align: center; }
+h1 { margin: 0; font-size: 2.6rem; }
+p { margin: 0; font-size: 1.25rem; font-weight: 700; }
+.dim { color: var(--kw-dim); font-size: 1rem; }
+button { font: inherit; font-weight: 800; cursor: pointer; }
+/* Big, friendly targets: small hands on a wall screen. */
+.big { min-width: 220px; min-height: 88px; padding: 20px 36px; border: none; border-radius: 999px; background: var(--kw-accent); color: var(--kw-accent-ink); font-size: 1.8rem; }
+.big:active { transform: scale(0.97); }
+.plain { min-height: 44px; padding: 8px 18px; border: 2px solid var(--kw-border); border-radius: 999px; background: var(--kw-card); color: var(--kw-text); }
+button:focus-visible { outline: 3px solid var(--kw-text); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .big:active { transform: none; } }

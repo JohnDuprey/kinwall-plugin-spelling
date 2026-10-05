@@ -1,0 +1,28 @@
+# Kinwall installs plugins from a built package attached to a GitHub release, never from source.
+# Publish a release tagged v<version> (matching kinwall-plugin.json) and this attaches
+# kinwall-plugin.zip to it. Families then install or update from your repo's link.
+name: Package plugin
+on:
+  release:
+    types: [published]
+permissions:
+  contents: write
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # If your plugin has a build step (TypeScript, a bundler), add it here and package its output:
+      # - uses: actions/setup-node@v4
+      #   with: { node-version: 22 }
+      # - run: npm ci && npm run build
+      - name: The release tag matches the manifest version
+        run: |
+          v=$(jq -r .version kinwall-plugin.json)
+          [ "v$v" = "$GITHUB_REF_NAME" ] || [ "$v" = "$GITHUB_REF_NAME" ] || { echo "kinwall-plugin.json says $v but the tag is $GITHUB_REF_NAME"; exit 1; }
+      - name: Build kinwall-plugin.zip
+        run: scripts/package.sh        # scripts/package.sh dist   if you build into dist/
+      - name: Attach it to the release
+        run: gh release upload "$GITHUB_REF_NAME" kinwall-plugin.zip --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}
