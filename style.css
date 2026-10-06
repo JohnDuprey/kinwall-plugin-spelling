@@ -21,6 +21,7 @@ button, input, select, textarea { font: inherit; color: var(--kw-text); }
 button { font-weight: 800; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 3px solid var(--kw-text); outline-offset: 3px; }
 button:disabled { cursor: default; }
+.nb { white-space: nowrap; }
 .dim { color: var(--kw-dim); font-weight: 600; }
 h1 { margin: 0; font-size: clamp(1.5rem, 5vw, 2.3rem); }
 h2 { margin: 8px 0 0; font-size: 1.25rem; }

@@ -124,6 +124,8 @@ function button(cls, html, onclick) {
   b.onclick = onclick
   return b
 }
+/** "-ful, -less": a line never breaks inside "-less" (it broke after the hyphen, leaving "-" alone). */
+const noBreakAtHyphens = s => s.split(/(\s+)/).map(t => t.includes('-') ? `<span class="nb">${esc(t)}</span>` : esc(t)).join('')
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
 
 // ---------- Home ----------
@@ -176,7 +178,7 @@ function openGrade(g) {
   box.append(button('pattern all', `<span>Mix of everything</span><small>${count(all)}</small>`, () => startSession({ kind: 'bank', grade: g })))
   for (const [name] of bank.patterns) {
     const items = bankItems(g, name)
-    box.append(button('pattern', `<span>${esc(name)}</span><small>${count(items)}</small>`, () => startSession({ kind: 'bank', grade: g, pattern: name })))
+    box.append(button('pattern', `<span>${noBreakAtHyphens(name)}</span><small>${count(items)}</small>`, () => startSession({ kind: 'bank', grade: g, pattern: name })))
   }
   show('grade')
 }
