@@ -122,6 +122,30 @@ input.tile.shown { border-color: var(--fix-ink); background: var(--fix-bg); colo
   .letters { font-size: 1.6rem; }
   .tile { height: 48px; }
 }
+/* Very short (a tablet on its side with the keyboard up leaves about 200px): the speaker sits beside
+   the question, and everything else shrinks again. */
+@media (max-height: 300px) {
+  header { min-height: 36px; }
+  .icon { width: 34px; height: 34px; font-size: 1rem; }
+  main { padding-top: 38px; padding-bottom: 4px; gap: 4px; }
+  .screen { gap: 6px; }
+  #play { display: grid; grid-template-columns: auto 1fr; align-items: center; justify-items: center; column-gap: 10px; }
+  #play > :not(.hear):not(.ask) { grid-column: 1 / -1; }
+  #play .ask { justify-self: start; }
+  .say { width: 44px; height: 44px; font-size: 1.2rem; }
+  .pill { min-height: 40px; padding: 6px 12px; font-size: 0.95rem; }
+  .spell { min-height: 44px; font-size: 1.4rem; }
+  .type .go, .fill .go { min-height: 44px; padding: 6px 18px; font-size: 1.1rem; }
+  .fill { flex-direction: row; gap: 10px; }
+  .tile { height: 44px; font-size: 1.5rem; }
+  .letters { font-size: 1.3rem; }
+  .choices { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .choice { min-height: 52px; padding: 6px; border-radius: 16px; font-size: 1.3rem; }
+  .compare { flex-direction: row; gap: 18px; padding: 4px 14px; }
+  .compare .row { gap: 8px; }
+  .tag { width: auto; }
+  .fix > .dim { display: none; } /* the box below says it: "Now type it" */
+}
 @media (prefers-reduced-motion: reduce) { .choice.wrong { animation: none; } .hold.holding .hold-fill { transition: none; } }
 [data-reduced-motion] .choice.wrong { animation: none; }
 
