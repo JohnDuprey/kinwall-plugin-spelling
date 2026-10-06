@@ -1,11 +1,13 @@
 // Spelling practice: Kinwall says a word (never shows it) and the child spells it: typing it, picking
 // the right spelling, or filling in missing letters. Words come from lists a parent sets up for this
-// kid, or from the built-in grade banks (banks.js). Word logic lives in words.js.
+// kid, or from ten levels built from the word banks (banks.js). Word logic lives in words.js.
 //
 // Saved for whoever is playing:
 //   list-<id>  { id, title, test, archived, created, n, words: [{ w, s, r, t }] }  one per list
-//   bank-<g>   { n, w: { word: [r, t] } }  progress in grade g's bank (only words already asked)
-//   prefs      { grade }
+//   level-<L>  { w: { word: [r, t] } }  progress in level L (only words already asked)
+//   levels     { open, cur, mix, n }  levels open, the one practiced last, "mix in earlier levels",
+//              and the level-session counter (t below)
+//   bank-<g>   older versions' progress per grade: still read (words.js levelProgress), never written
 // r: right the first time this many times in a row; t: the session (n) it was last asked in.
 const el = id => document.getElementById(id)
 // Speech: this page's own speechSynthesis when it has one (it lets us pick the voice); else Kinwall
@@ -18,8 +20,9 @@ const LIMIT = 15500 // bytes per saved value (Kinwall allows 16 KB)
 
 let ctx = { member: null, locale: 'en-US' }
 let lists = [] // this kid's lists
-let banks = {} // grade -> { n, w }
-let prefs = { grade: 2 }
+const LV = Banks.LEVELS
+let prog = {} // level -> { word: [r, t] }
+let lv = Words.cleanSettings(undefined, LV.length) // { open, cur, mix, n }
 let lastPraise = ''
 
 const sleep = ms => new Promise(r => setTimeout(r, ms))
@@ -80,8 +83,8 @@ function pickFrom(list) {
 }
 
 // ---------- Screens ----------
-const SCREENS = ['home', 'nospeech', 'grade', 'play', 'done', 'edit', 'editlist']
-const BACK = { grade: 'home', play: 'home', done: 'home', edit: 'home', editlist: 'edit' }
+const SCREENS = ['home', 'nospeech', 'level', 'play', 'done', 'edit', 'editlist']
+const BACK = { level: 'home', play: 'home', done: 'home', edit: 'home', editlist: 'edit' }
 let screen = 'home'
 function show(name) {
   screen = name
@@ -148,51 +151,83 @@ function renderHome() {
     }
     box.append(card)
   }
-  if (!mine.length) box.innerHTML = `<p class="dim">${ctx.parent === false ? 'No spelling list yet. A grown-up can add one from their phone.' : 'No spelling list yet. Practice a grade below, or a grown-up can add this week\'s words.'}</p>`
-  const grades = el('grades')
-  grades.textContent = ''
-  for (const b of Banks.BANKS) grades.append(button('grade-btn' + (b.grade === prefs.grade ? ' last' : ''), `${b.name.replace(' grade', '')}<small>grade</small>`, () => openGrade(b.grade)))
+  if (!mine.length) box.innerHTML = `<p class="dim">${ctx.parent === false ? 'No spelling list yet. A grown-up can add one from their phone.' : 'No spelling list yet. Practice a level below, or a grown-up can add this week\'s words.'}</p>`
+  renderLevels()
 }
 
-// ---------- Grade banks ----------
-const bankOf = g => (banks[g] = banks[g] || { n: 0, w: {} })
-/** A bank's words as practice items, with this kid's progress. */
-function bankItems(g, pattern) {
-  const p = bankOf(g)
-  return Banks.BANKS.find(b => b.grade === g).patterns
+// ---------- Levels ----------
+const pctOf = L => Math.round(Words.share(LV[L - 1].words, prog[L]) * 100)
+const toOpen = L => Math.ceil(LV[L - 1].words.length * Words.UNLOCK) // mastered words that open the next level
+const openNote = () => lv.open < LV.length ? `Get ⭐ on ${toOpen(lv.open)} of Level ${lv.open}'s ${LV[lv.open - 1].words.length} words to open Level ${lv.open + 1}.` : 'Every level is open!'
+function renderLevels() {
+  const box = el('levels')
+  box.textContent = ''
+  for (const l of LV) {
+    const open = l.level <= lv.open
+    const pct = pctOf(l.level)
+    const b = button('level-btn' + (open ? '' : ' locked') + (l.level === lv.cur ? ' last' : ''),
+      `<small>Level</small><span class="num">${l.level}</span>` +
+      (open ? `<span class="bar" aria-hidden="true"><span style="width:${pct}%"></span></span>` : '<span class="lock" aria-hidden="true">🔒</span>'),
+      () => { if (open) openLevel(l.level); else el('levels-note').textContent = `Level ${l.level} is locked. ${openNote()}` })
+    b.setAttribute('aria-label', open ? `Level ${l.level}: ${pct}% of its words have stars` : `Level ${l.level}, locked`)
+    if (!open) b.setAttribute('aria-disabled', 'true')
+    box.append(b)
+  }
+  el('levels-note').textContent = openNote()
+}
+
+/** A level's words as practice items, with this kid's progress (`lv`: which level each is from). */
+function levelItems(L, pattern) {
+  const map = prog[L] || (prog[L] = {})
+  return LV[L - 1].patterns
     .filter(([name]) => !pattern || name === pattern)
     .flatMap(([, words]) => words.split(' ').map(w => {
-      const [r, t] = p.w[w] || [0, 0]
-      return { w, s: Banks.SENTENCES[w.toLowerCase()] || '', r, t }
+      const [r, t] = map[w] || [0, 0]
+      return { w, s: Banks.SENTENCES[w.toLowerCase()] || '', r, t, lv: L }
     }))
 }
 
-function openGrade(g) {
-  if (prefs.grade !== g) { prefs = { ...prefs, grade: g }; keep('prefs', prefs) }
-  const bank = Banks.BANKS.find(b => b.grade === g)
-  el('grade-title').textContent = bank.name
+function openLevel(L) {
+  const level = LV[L - 1]
+  el('level-title').textContent = `Level ${L}`
+  const all = levelItems(L)
+  const done = all.filter(w => Words.mastered(w.r)).length
+  el('level-fill').style.width = `${pctOf(L)}%`
+  el('level-sub').textContent = `${done} of ${all.length} words have ⭐` +
+    (L === lv.open && L < LV.length ? ` · ${toOpen(L)} open Level ${L + 1}` : '')
   const box = el('patterns')
   box.textContent = ''
   const count = items => `${items.filter(w => Words.mastered(w.r)).length} of ${items.length} ⭐`
-  const all = bankItems(g)
-  box.append(button('pattern all', `<span>Mix of everything</span><small>${count(all)}</small>`, () => startSession({ kind: 'bank', grade: g })))
-  for (const [name] of bank.patterns) {
-    const items = bankItems(g, name)
-    box.append(button('pattern', `<span>${noBreakAtHyphens(name)}</span><small>${count(items)}</small>`, () => startSession({ kind: 'bank', grade: g, pattern: name })))
+  box.append(button('pattern all', `<span>Mix of everything</span><small>${count(all)}</small>`, () => startSession({ kind: 'level', level: L })))
+  for (const [name] of level.patterns) {
+    const items = levelItems(L, name)
+    box.append(button('pattern', `<span>${noBreakAtHyphens(name)}</span><small>${count(items)}</small>`, () => startSession({ kind: 'level', level: L, pattern: name })))
   }
-  show('grade')
+  show('level')
 }
 
 // ---------- A session ----------
 let S = null // { source, items, queue, pos, n, right, firstTries, newStars, entry, tries }
 
 function startSession(source) {
-  const items = source.kind === 'list' ? source.list.words : bankItems(source.grade, source.pattern)
+  let items, picked, n
+  if (source.kind === 'list') {
+    items = source.list.words
+    picked = Words.pickSession(items)
+    n = source.list.n = (source.list.n || 0) + 1
+  } else {
+    const L = source.level
+    // "Mix in earlier levels" (a grown-up's setting): the level's mix also reviews the open levels before it.
+    const review = lv.mix && !source.pattern ? LV.slice(0, L - 1).flatMap(l => levelItems(l.level)) : []
+    items = Words.levelSession(levelItems(L, source.pattern), review)
+    picked = items.map((_, i) => i)
+    lv = { ...lv, cur: L, n: lv.n + 1 }
+    n = lv.n
+    keep('levels', lv)
+  }
   if (!items.length) return
-  const holder = source.kind === 'list' ? source.list : bankOf(source.grade)
-  holder.n = (holder.n || 0) + 1
-  const queue = Words.pickSession(items).map(i => ({ i, kind: Words.questionType(items[i], Math.random, Banks.soundsLike(items[i].w)) }))
-  S = { source, items, queue, pos: 0, n: holder.n, right: 0, asked: 0, newStars: [], again: [] }
+  const queue = picked.map(i => ({ i, kind: Words.questionType(items[i], Math.random, Banks.soundsLike(items[i].w)) }))
+  S = { source, items, queue, pos: 0, n, right: 0, asked: 0, newStars: [], again: [] }
   if (speech) pickVoice() // voices can arrive late; pick again now they're surely loaded
   show('play')
   ask()
@@ -202,9 +237,9 @@ function startSession(source) {
 function persist() {
   const src = S.source
   if (src.kind === 'list') return keep(`list-${src.list.id}`, src.list)
-  const p = bankOf(src.grade)
-  for (const w of S.items) if (w.t) p.w[w.w] = [w.r, w.t]
-  return keep(`bank-${src.grade}`, p)
+  const w = S.word // one value per level, so a save stays small
+  prog[w.lv][w.w] = [w.r, w.t]
+  return keep(`level-${w.lv}`, { w: prog[w.lv] })
 }
 
 function ask() {
@@ -440,15 +475,27 @@ function finish() {
     (S.newStars.length ? ` New ⭐ word${S.newStars.length === 1 ? '' : 's'}:` : S.again.length ? ' Words to keep practicing:' : '')
   const box = el('done-words')
   box.innerHTML = (S.newStars.length ? S.newStars : S.again).map(w => `<span class="chip${S.newStars.length ? ' strong' : ''}">${esc(w)}</span>`).join('')
+  // Enough of this level has stars: the next one opens.
+  const L = S.source.kind === 'level' ? S.source.level : 0
+  const after = L ? Words.afterSession(lv, L, LV[L - 1].words, prog[L], LV.length) : { opened: false }
+  el('unlocked').hidden = !after.opened
+  if (after.opened) {
+    lv = { ...lv, open: after.open }
+    keep('levels', lv)
+    el('unlocked-title').textContent = `Level ${after.open} is open!`
+    el('unlocked-go').textContent = `Try Level ${after.open}`
+    el('unlocked-go').onclick = () => openLevel(after.open)
+  }
   show('done')
-  say(`Nice practicing${name}!`)
+  say(after.opened ? `Nice practicing${name}! Level ${after.open} is open!` : `Nice practicing${name}!`)
 }
 el('again').onclick = () => startSession(S.source)
 el('done-home').onclick = home
 
 // ---------- For parents: lists ----------
 function renderEdit() {
-  el('edit-title').textContent = ctx.member ? `${ctx.member.name}'s spelling lists` : 'Spelling lists'
+  el('edit-title').textContent = ctx.member ? `Spelling for ${ctx.member.name}` : 'Spelling'
+  renderLevelSettings()
   const box = el('edit-lists')
   box.textContent = ''
   const sorted = Words.sortLists(lists)
@@ -458,6 +505,20 @@ function renderEdit() {
   }
 }
 el('new-list').onclick = () => openList(null)
+
+// Grown-ups choose which levels are open, with the grade each is about (kids never see grades).
+const gradeName = g => Banks.BANKS.find(b => b.grade === g).name
+function renderLevelSettings() {
+  const sel = el('f-open')
+  sel.innerHTML = LV.map(l => `<option value="${l.level}"${l.level < lv.cur ? ' disabled' : ''}>Level ${l.level} (about ${gradeName(l.grade)})</option>`).join('')
+  sel.value = lv.open
+  el('f-mix').checked = lv.mix
+  const who = ctx.member ? ctx.member.name : 'This player'
+  el('f-open-hint').textContent = `Levels 1–2 ≈ 1st grade, 3–4 ≈ 2nd, 5–6 ≈ 3rd, 7–8 ≈ 4th, 9–10 ≈ 5th. ${who} is on Level ${lv.cur}, so it stays open. ` +
+    `A level also opens the next one by itself once ${Math.round(Words.UNLOCK * 100)}% of its words have ⭐.`
+}
+el('f-open').onchange = () => { lv = Words.cleanSettings({ ...lv, open: Number(el('f-open').value) }, LV.length); keep('levels', lv); renderLevelSettings() }
+el('f-mix').onchange = () => { lv = { ...lv, mix: el('f-mix').checked }; keep('levels', lv) }
 
 let editing = null // the list being edited, or a new one
 let sentences = {} // word (lowercase) -> sentence typed so far
@@ -502,7 +563,7 @@ function renderBankPick() {
   const g = el('f-grade')
   if (!g.options.length) {
     g.innerHTML = Banks.BANKS.map(b => `<option value="${b.grade}">${b.name}</option>`).join('')
-    g.value = prefs.grade
+    g.value = LV[lv.cur - 1].grade
   }
   const bank = Banks.BANKS.find(b => b.grade === Number(g.value))
   const p = el('f-pattern')
@@ -583,7 +644,10 @@ Kinwall.ready().then(async c => {
   el('hold-btn').hidden = ctx.parent !== undefined
   const saved = await Kinwall.load().catch(() => ({}))
   lists = Object.entries(saved).filter(([k, v]) => k.startsWith('list-') && v && Array.isArray(v.words)).map(([, v]) => v)
-  for (const [k, v] of Object.entries(saved)) if (/^bank-\d$/.test(k) && v && v.w) banks[k.slice(5)] = v
-  if (saved.prefs) prefs = { ...prefs, ...saved.prefs }
+  // Levels, from level-<L> values and older bank-<grade> ones: stars already earned count, and a kid
+  // who already passed levels starts with them open.
+  prog = Words.levelProgress(saved, LV)
+  lv = Words.cleanSettings(saved.levels, LV.length, Words.earnedOpen(LV, prog))
+  if (!saved.levels) lv.n = Math.max(0, ...Object.entries(saved).filter(([k, v]) => /^bank-\d+$/.test(k) && v).map(([, v]) => v.n || 0))
   home()
 })

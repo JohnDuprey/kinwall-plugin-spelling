@@ -1,6 +1,6 @@
 # Spelling practice
 
-A spelling game for [Kinwall](https://github.com/JohnDuprey/kinwall), for ages 6 to 11. Kids practice this week's spelling list, or 1st to 5th grade words, and earn stars as words stick. Kinwall says each word out loud and never shows it, just like a spelling test.
+A spelling game for [Kinwall](https://github.com/JohnDuprey/kinwall), for ages 6 to 11. Kids practice this week's spelling list, or work up through ten levels of words, and earn stars as words stick. Kinwall says each word out loud and never shows it, just like a spelling test.
 
 - **Three kinds of questions, mixed:** **Type it** (spell the whole word), **Pick it** (choose the right spelling from look-alike misspellings) and **Fill in the missing letters** (the tricky parts are blanked). New words start with picking and filling in; practiced words get typed.
 - **Its own keyboard on touch screens:** the system keyboard's word suggestions would give spellings away (and it covers half a tablet on its side), so typed answers use the game's letter keys, sized to fit what's left of the screen. A real keyboard still types.
@@ -10,13 +10,28 @@ A spelling game for [Kinwall](https://github.com/JohnDuprey/kinwall), for ages 6
 
 ## Word lists
 
-A grown-up adds each kid's lists: the words (typed or pasted, one per line or with commas), an optional sentence for each word, an optional name and test date. Words can also be picked from the grade banks. The newest list comes first on the kid's screen; old lists can be archived or deleted. Lists are saved for that kid.
+A grown-up adds each kid's lists: the words (typed or pasted, one per line or with commas), an optional sentence for each word, an optional name and test date. Words can also be picked from the word banks. The newest list comes first on the kid's screen; old lists can be archived or deleted. Lists are saved for that kid.
 
-**Who can edit lists:** on a parent's phone or computer, **Edit lists** shows on the home screen. Open Spelling practice there, pick the kid as who's playing, and add their words. Wall screens and kids' own devices don't show it. On an older Kinwall that doesn't say whether it's a parent's device, a **Grown-ups: hold to edit lists** button opens it after a two-second hold: it keeps casual taps out; it isn't a lock.
+**Who can edit lists and levels:** on a parent's phone or computer, **Lists and levels** shows on the home screen. Open Spelling practice there, pick the kid as who's playing, and add their words or set their levels. Wall screens and kids' own devices don't show it. On an older Kinwall that doesn't say whether it's a parent's device, a **Grown-ups: hold for lists and levels** button opens it after a two-second hold: it keeps casual taps out; it isn't a lock.
 
-## Grade banks
+## Levels
 
-Over 800 built-in words, about 160 for each grade from 1st to 5th, grouped by spelling pattern: short and long vowels, blends and digraphs, silent e, vowel teams, r-controlled vowels, double letters, suffixes (-s, -ing, -ed, -er and -est, -y, -ly, -ful, -less, -ness, -ize and more), plurals, prefixes, sound-alikes, tricky words and more. Kids can practice a whole grade (a mix of everything) or one pattern, with no setup. Each session draws the words practiced least and longest ago, plus a few recently missed, so a kid works through the whole bank over time instead of seeing the same few. The lists were written for this plugin from common words and patterns.
+Over 800 built-in words in ten levels, about 80 words each, grouped by spelling pattern: short and long vowels, blends and digraphs, silent e, vowel teams, r-controlled vowels, double letters, suffixes (-s, -ing, -ed, -er and -est, -y, -ly, -ful, -less, -ness, -ize and more), plurals, prefixes, sound-alikes, tricky words and more. The words were written for this plugin from common words and patterns.
+
+- **Kids see levels, never grades.** Each level has **Mix of everything** and a button for each pattern. Each session draws the words practiced least and longest ago, plus a few recently missed, so a kid works through the whole level over time instead of seeing the same few.
+- **Unlocking:** a level's bar fills as its words get ⭐ (right the first time 3 times in a row). At 80%, the next level opens, with a celebration. Kids can go back to any open level; locked ones show a 🔒. A new player starts with Level 1 open.
+- **For grown-ups** (under **Lists and levels**): **Levels open up to** opens or closes levels for that kid, never below the level they're on. It shows the grade each level is about:
+
+  | Levels | About |
+  |---|---|
+  | 1–2 | 1st grade (short vowels and blends, then digraphs, silent e and tricky words) |
+  | 3–4 | 2nd grade (long vowels and r-controlled, then ou/oi, -ed/-ing, sound-alikes) |
+  | 5–6 | 3rd grade |
+  | 7–8 | 4th grade |
+  | 9–10 | 5th grade (Level 10: Greek and Latin roots, easily confused and tricky words) |
+
+- **Mix in earlier levels** (off by default): a level's mix also reviews the open levels before it, about 3 words in 10, missed and longest-ago words first.
+- **Coming from v1.0:** stars earned in the old grade banks count in the matching levels, and levels already passed are open.
 
 ## Points for practice
 
@@ -35,7 +50,7 @@ In Kinwall, go to **Activities → Get more activities**. Spelling practice is l
 This plugin is built from [kinwall-plugin-hello-world](https://github.com/JohnDuprey/kinwall-plugin-hello-world); its README covers the SDK, the limits and how publishing works. `AGENTS.md` has the same rules for AI coding assistants.
 
 - **Preview:** `python3 -m http.server 8000`, then open http://localhost:8000/dev/. The **Device** menu switches between a parent's device, a wall or kid's device, and an older Kinwall.
-- **Test:** `node --test` runs the tests for the word logic in `words.js` (misspellings, blanks, the letter diff, stars and session picking) and the banks in `banks.js`.
+- **Test:** `node --test` runs the tests for the word logic in `words.js` (misspellings, blanks, the letter diff, stars, session picking, unlocking, review mixing and moving v1.0 progress) and the banks and levels in `banks.js`.
 - **Package:** `scripts/package.sh` builds `kinwall-plugin.zip`.
 - **Release:** bump `version` in `kinwall-plugin.json` and publish a release tagged `v<version>`. The workflow attaches the package.
 
@@ -46,10 +61,11 @@ Everything is saved for whoever is playing, one value per list so each stays wel
 | Key | Value |
 |---|---|
 | `list-<id>` | `{ id, title, test, archived, created, n, words: [{ w, s, r, t }] }`: up to 60 words, each with its sentence, streak (`r`) and the session it was last asked in (`t`) |
-| `bank-<grade>` | `{ n, w: { word: [r, t] } }`: progress in that grade's bank, for words asked so far |
-| `prefs` | `{ grade }`: the grade picked last |
+| `level-<L>` | `{ w: { word: [r, t] } }`: progress in level L, for words asked so far (under 4 KB even when full) |
+| `levels` | `{ open, cur, mix, n }`: levels open, the level practiced last (levels never close below it), "Mix in earlier levels", and the session counter |
+| `bank-<grade>` | v1.0's progress per grade: still read and counted in the matching levels, never written |
 
-Each answer saves its list or bank, which also tells Kinwall the child is still practicing.
+Each answer saves its list or level, which also tells Kinwall the child is still practicing.
 
 ## License
 

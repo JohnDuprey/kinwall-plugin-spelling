@@ -112,12 +112,36 @@
     feet: 'I put socks on my feet.', weigh: 'How much do you weigh?', red: 'Stop at the red light.', seed: 'We planted a seed in the garden.',
   }
 
+  // Levels: what kids see (never grade names). Each grade's bank split in two, easier patterns first,
+  // about 80 words a level. Every bank word is in exactly one level (test/words.test.js checks).
+  const LEVEL_PLAN = [
+    [1, ['Short a', 'Short e', 'Short i', 'Short o', 'Short u', 'Blends']],
+    [1, ['sh, ch, th, wh, ck', 'Silent e', 'Vowel teams', 'Adding -s and -ing', 'Tricky words']],
+    [2, ['Long a: ai, ay', 'Long e: ee, ea', 'Long o: oa, ow', 'Long i: igh, y, ie', 'ar, er, ir, or, ur']],
+    [2, ['ou, ow, oi, oy', 'Adding -ed and -ing', 'Adding -er and -est', 'Sound-alikes', 'Tricky words']],
+    [3, ['Double letters', 'Silent letters', 'Plurals', '-ful, -less, -ly, -ness', '-y, -er and -est']],
+    [3, ['un- and re-', 'Changing the ending', 'Soft c and g, -dge, -tch', 'Sound-alikes', 'Tricky words']],
+    [4, ['Compound words', '-le endings', 'ough and augh', 'Prefixes', 'ie and ei', '-ly, -ward and -ity', 'Tricky plurals']],
+    [4, ['-tion and -sion', '-ture and -ous', '-able, -ible, -ment', 'Sound-alikes', 'Tricky words']],
+    [5, ['Prefixes', '-able and -ible', '-ence, -ance, -ent, -ant', '-ize, -ify and -ism', 'Doubling before a suffix', 'Silent letters']],
+    [5, ['Greek and Latin roots', '-ious, -eous, -cial, -tial', 'Easily confused', 'Tricky words']],
+  ]
+  /** [{ level, grade, patterns: [[name, 'words …']], words: [...] }], Level 1 first. */
+  const LEVELS = LEVEL_PLAN.map(([grade, names], i) => {
+    const bank = BANKS.find(b => b.grade === grade)
+    const patterns = names.map(n => bank.patterns.find(([name]) => name === n) || [n, ''])
+    return { level: i + 1, grade, patterns, words: patterns.flatMap(([, w]) => (w ? w.split(' ') : [])) }
+  })
+  const levelIndex = new Map(LEVELS.flatMap(l => l.words.map(w => [w, l.level])))
+  /** Which level a bank word is in (0: none). */
+  const levelOf = w => levelIndex.get(w) || 0
+
   /** Every bank word with where it lives: [{ w, grade, pattern }]. */
   const all = () => BANKS.flatMap(b => b.patterns.flatMap(([pattern, words]) => words.split(' ').map(w => ({ w, grade: b.grade, pattern }))))
   /** The other words that sound like this one. */
   const soundsLike = w => (HOMOPHONES.find(g => g.includes(w.toLowerCase())) || []).filter(x => x !== w.toLowerCase())
 
-  const api = { BANKS, HOMOPHONES, SENTENCES, all, soundsLike }
+  const api = { BANKS, HOMOPHONES, SENTENCES, LEVELS, all, soundsLike, levelOf }
   if (typeof module !== 'undefined' && module.exports) module.exports = api
   else root.Banks = api
 })(this)

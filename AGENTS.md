@@ -42,7 +42,7 @@ Kinwall.close()                             // back to Activities
 
 ## Files and workflow
 
-- **Plugin files:** `index.html`, `banks.js` (the grade word banks), `words.js` (the pure word logic, tested by `node --test`), `game.js`, `style.css`. The manifest is `kinwall-plugin.json`. The hello-world starter's README documents each file.
+- **Plugin files:** `index.html`, `banks.js` (the word banks and the ten levels built from them), `words.js` (the pure word logic, tested by `node --test`), `game.js`, `style.css`. The manifest is `kinwall-plugin.json`. The hello-world starter's README documents each file.
 - **Preview:** run `python3 -m http.server 8000` and open `http://localhost:8000/dev/`. It stands in for Kinwall: it has a member picker and a theme switch, saves to its own storage, and logs every message.
 - **Package:** `scripts/package.sh` builds `kinwall-plugin.zip`. The limits are 5 MB zipped, and 10 MB, 200 files and 2 MB per file unpacked. Only `html js mjs css json txt svg png jpg jpeg gif webp mp3 ogg wav m4a woff woff2` files are served.
 - **Release:** publish a GitHub release tagged `v<version>`. `.github/workflows/release.yml` attaches the zip.

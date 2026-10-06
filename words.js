@@ -149,7 +149,72 @@
   /** Lists newest first, archived ones last. */
   const sortLists = lists => [...lists].sort((a, b) => (a.archived ? 1 : 0) - (b.archived ? 1 : 0) || b.created - a.created)
 
-  const api = { MASTERED, MAX_WORDS, SESSION, same, parseWords, mergeWords, distractors, blanks, diff, record, mastered, pickSession, questionType, shuffle, sortLists }
+  // ---------- Levels ----------
+  // Progress is a map per level, { word: [r, t] }, saved as level-<L>. Earlier versions saved it per
+  // grade as bank-<g> { n, w: { word: [r, t] } }; those are still read, and a level's own value wins.
+  const UNLOCK = 0.8 // a level opens the next once this share of its words is mastered
+
+  /** Level progress from saved data: { 1: { word: [r, t] }, … }. `levels` is Banks.LEVELS. */
+  function levelProgress(saved, levels) {
+    const prog = {}
+    for (const l of levels) prog[l.level] = { ...((saved[`level-${l.level}`] || {}).w || {}) }
+    const where = new Map(levels.flatMap(l => l.words.map(w => [w, l.level])))
+    for (const [key, value] of Object.entries(saved)) {
+      if (!/^bank-\d+$/.test(key) || !value || !value.w) continue
+      for (const [w, rt] of Object.entries(value.w)) {
+        const L = where.get(w)
+        if (L && !(w in prog[L]) && Array.isArray(rt)) prog[L][w] = rt
+      }
+    }
+    return prog
+  }
+
+  /** How much of a level is mastered, 0 to 1. */
+  const share = (words, map) => (words.length ? words.filter(w => mastered((map[w] || [])[0])).length / words.length : 0)
+  const passed = (words, map) => share(words, map) >= UNLOCK
+
+  /** Levels open on a first visit: Level 1, plus each level after one already passed (older progress). */
+  function earnedOpen(levels, prog) {
+    let open = 1
+    while (open < levels.length && passed(levels[open - 1].words, prog[open])) open++
+    return open
+  }
+
+  /** Grown-up settings, checked: open 1..count but never below the level the kid is working on. */
+  function cleanSettings(v, count, fallbackOpen = 1) {
+    const int = (x, d) => (Number.isInteger(x) ? x : d)
+    const cur = Math.min(Math.max(int(v && v.cur, 1), 1), count)
+    const open = Math.min(Math.max(int(v && v.open, fallbackOpen), cur, 1), count)
+    return { open, cur, mix: !!(v && v.mix), n: Math.max(int(v && v.n, 0), 0) }
+  }
+
+  /** After a session in level L: the new "open up to", and whether it just opened the next one. */
+  function afterSession(settings, L, words, map, count) {
+    if (L === settings.open && L < count && passed(words, map)) return { open: L + 1, opened: true }
+    return { open: settings.open, opened: false }
+  }
+
+  /** `n` review words from earlier levels: missed ones first, then the longest since practiced. */
+  function pickReview(words, n, rand = Math.random) {
+    const order = shuffle(words.map((_, i) => i), rand)
+    const t = i => words[i].t || 0
+    const missed = i => t(i) && !words[i].r
+    order.sort((x, y) => (missed(y) ? 1 : 0) - (missed(x) ? 1 : 0) || t(x) - t(y))
+    return order.slice(0, Math.min(n, words.length))
+  }
+
+  /** A level session: about SESSION words from `main`; with `review` words (earlier levels), about
+   *  REVIEW of them come from there. Returns the chosen items, shuffled. */
+  const REVIEW = 0.3
+  function levelSession(main, review = [], size = SESSION, rand = Math.random) {
+    const total = Math.min(size, main.length + review.length)
+    const fromReview = review.length ? Math.min(review.length, Math.round(total * REVIEW)) : 0
+    const fromMain = Math.min(main.length, total - fromReview)
+    const picked = [...pickSession(main, fromMain, rand).map(i => main[i]), ...pickReview(review, total - fromMain, rand).map(i => review[i])]
+    return shuffle(picked, rand)
+  }
+
+  const api = { UNLOCK, REVIEW, levelProgress, share, passed, earnedOpen, cleanSettings, afterSession, pickReview, levelSession, MASTERED, MAX_WORDS, SESSION, same, parseWords, mergeWords, distractors, blanks, diff, record, mastered, pickSession, questionType, shuffle, sortLists }
   if (typeof module !== 'undefined' && module.exports) module.exports = api
   else root.Words = api
 })(this)

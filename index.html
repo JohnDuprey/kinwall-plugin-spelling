@@ -13,12 +13,13 @@
     <div class="count" id="count" aria-live="polite"></div>
   </header>
   <main>
-    <!-- Home: this kid's lists, the grade word banks, and (for parents) Edit lists. Every way in is a tap, which also lets the page speak. -->
+    <!-- Home: this kid's lists, the levels, and (for parents) lists and levels settings. Every way in is a tap, which also lets the page speak. -->
     <section class="screen" id="home" hidden>
       <h1>Spelling practice</h1>
       <div class="lists" id="my-lists"></div>
-      <h2>Practice by grade</h2>
-      <div class="grades" id="grades"></div>
+      <h2>Levels</h2>
+      <div class="levels" id="levels"></div>
+      <p class="dim levels-note" id="levels-note" aria-live="polite"></p>
     </section>
 
     <!-- No speech on this device: showing the word would give the answer away. -->
@@ -28,9 +29,13 @@
       <p class="dim">Spelling practice says each word without showing it, so it needs a device that can talk. Try a phone, tablet or computer with a voice.</p>
     </section>
 
-    <!-- One grade's word bank: everything mixed, or one spelling pattern. -->
-    <section class="screen" id="grade" hidden>
-      <h1 id="grade-title"></h1>
+    <!-- One level: everything mixed, or one spelling pattern. -->
+    <section class="screen" id="level" hidden>
+      <h1 id="level-title"></h1>
+      <div class="level-progress">
+        <span class="bar big" aria-hidden="true"><span id="level-fill"></span></span>
+        <p class="dim" id="level-sub"></p>
+      </div>
       <div class="patterns" id="patterns"></div>
     </section>
 
@@ -74,6 +79,12 @@
     <section class="screen" id="done" hidden>
       <div class="big-emoji" aria-hidden="true">🎉</div>
       <h1 id="done-title"></h1>
+      <!-- A level just opened the next one. -->
+      <div class="unlocked" id="unlocked" hidden>
+        <div class="big-emoji" aria-hidden="true">🔓</div>
+        <h2 id="unlocked-title"></h2>
+        <button class="go" id="unlocked-go"></button>
+      </div>
       <p id="done-text"></p>
       <div class="word-chips" id="done-words"></div>
       <div class="row-buttons">
@@ -82,9 +93,18 @@
       </div>
     </section>
 
-    <!-- For parents: this kid's lists. -->
+    <!-- For parents: this kid's levels and lists. -->
     <section class="screen" id="edit" hidden>
       <h1 id="edit-title">Spelling lists</h1>
+      <div class="level-settings">
+        <h2>Levels</h2>
+        <label>Levels open up to
+          <select id="f-open"></select>
+        </label>
+        <p class="dim" id="f-open-hint"></p>
+        <label class="check"><input type="checkbox" id="f-mix"> <span>Mix in earlier levels <span class="dim">(about 3 of every 10 words review the open levels before)</span></span></label>
+      </div>
+      <h2>Spelling lists</h2>
       <button class="go" id="new-list">＋ New list</button>
       <div class="edit-lists" id="edit-lists"></div>
     </section>
@@ -120,8 +140,8 @@
 
     <!-- Parents only: on a parent's device, or (older Kinwall) behind a hold. -->
     <div class="grownups" id="grownups" hidden>
-      <button class="pill" id="edit-lists-btn">✏️ Edit lists</button>
-      <button class="pill hold" id="hold-btn"><span class="hold-fill" aria-hidden="true"></span><span class="hold-label">Grown-ups: hold to edit lists</span></button>
+      <button class="pill" id="edit-lists-btn">✏️ Lists and levels</button>
+      <button class="pill hold" id="hold-btn"><span class="hold-fill" aria-hidden="true"></span><span class="hold-label">Grown-ups: hold for lists and levels</span></button>
     </div>
   </main>
   <script src="kinwall.js"></script>
