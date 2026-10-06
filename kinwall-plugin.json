@@ -1,7 +1,7 @@
 {
   "id": "spelling",
   "name": "Spelling practice",
-  "version": "1.3.5",
+  "version": "1.4.0",
   "description": "Practice this week's spelling words or climb ten levels of words. Hear each word, then type it, pick the right spelling or fill in missing letters, and apply this week's rules to new words. A grown-up adds lists and sets levels; stars are saved for each child.",
   "entry": "index.html",
   "emoji": "🐝",

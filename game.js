@@ -106,6 +106,30 @@ async function say(text, { word = false } = {}) {
   })
 }
 
+// ---------- Cooldowns ----------
+// 🔊 and "Use it in a sentence" rest until the words are said plus REPLAY_REST, and after a wrong
+// answer the answer controls (Check, choices, the game's keys) rest for MISS_REST, so nobody spams
+// sound or guesses at random. Resting controls are dimmed, keep focus (aria-disabled, not disabled)
+// and ignore presses: handlers check resting().
+const REPLAY_REST = 1500
+const MISS_REST = 1600
+const resting = b => !!b && b.classList.contains('resting')
+const restGen = new WeakMap() // button -> the latest rest, so an older one never ends a newer one early
+function rest(buttons, ms) {
+  const g = {}
+  for (const b of buttons) { restGen.set(b, g); b.classList.add('resting'); b.setAttribute('aria-disabled', 'true') }
+  if (ms != null) setTimeout(() => { for (const b of buttons) if (restGen.get(b) === g) { b.classList.remove('resting'); b.removeAttribute('aria-disabled') } }, ms)
+  return g
+}
+async function restWhile(buttons, promise, after = REPLAY_REST) {
+  const g = rest(buttons)
+  await promise
+  rest(buttons.filter(b => restGen.get(b) === g), after)
+}
+const hear = promise => restWhile([el('say'), el('sentence')], promise)
+const answerControls = () => [el('spell-go'), el('fix-go'), el('fill-go'), ...el('q-pick').querySelectorAll('.choice'), ...el('kbd').querySelectorAll('.key')]
+const missed = () => rest(answerControls(), MISS_REST)
+
 /** A different phrase from the one said last time. */
 function pickFrom(list) {
   const options = list.filter(p => p !== lastPraise)
@@ -394,11 +418,10 @@ function ask() {
 function sayWord() {
   const word = S.word
   el('sentence').classList.toggle('nudge', !!word.s && Banks.soundsLike(word.w).length > 0)
-  if (word.id) return say(Rules.prompt(word.base, word.suffix))
-  return say(word.w, { word: true })
+  return hear(word.id ? say(Rules.prompt(word.base, word.suffix)) : say(word.w, { word: true }))
 }
-el('say').onclick = () => (S.word.id ? say(Rules.prompt(S.word.base, S.word.suffix)) : say(S.word.w, { word: true }))
-el('sentence').onclick = () => say(S.word.s)
+el('say').onclick = () => { if (!resting(el('say'))) sayWord() }
+el('sentence').onclick = () => { if (!resting(el('sentence'))) hear(say(S.word.s)) }
 
 /** The first try at each question counts toward the word's stars; a miss brings the word back later. */
 function scored(right) {
@@ -473,12 +496,13 @@ function fitRoom() {
 addEventListener('resize', fitRoom)
 fitRoom()
 // pointerdown, not click: the answer box keeps its focus (and caret) while a key is pressed.
-el('kbd').addEventListener('pointerdown', e => { const k = e.target.closest('.key'); if (!k) return; e.preventDefault(); press(k.dataset.k) })
-el('kbd').addEventListener('click', e => { if (e.detail === 0) { const k = e.target.closest('.key'); if (k) press(k.dataset.k) } }) // keyboard/switch access
+el('kbd').addEventListener('pointerdown', e => { const k = e.target.closest('.key'); if (!k) return; e.preventDefault(); if (!resting(k)) press(k.dataset.k) })
+el('kbd').addEventListener('click', e => { if (e.detail === 0) { const k = e.target.closest('.key'); if (k && !resting(k)) press(k.dataset.k) } }) // keyboard/switch access
 
 // Type it
 function checkTyped() {
   const input = el('spell')
+  if (resting(el('spell-go'))) return
   const typed = input.value.trim()
   if (!typed) return input.focus()
   if (Words.same(typed, S.word.w)) { input.disabled = true; return correct() }
@@ -502,10 +526,12 @@ function checkTyped() {
   const fix = el('fix-spell')
   fix.value = ''
   fix.focus()
-  say(S.word.w, { word: true })
+  hear(say(S.word.w, { word: true }))
+  missed()
 }
 function checkFix() {
   const fix = el('fix-spell')
+  if (resting(el('fix-go'))) return
   if (Words.same(fix.value, S.word.w)) {
     el('feedback').textContent = '✓ That\'s it! It will come back later for another try.'
     el('feedback').className = 'feedback good'
@@ -516,6 +542,7 @@ function checkFix() {
     el('feedback').textContent = 'Not quite. Look at the word above and try again.'
     el('feedback').className = 'feedback'
     fix.focus()
+    missed()
   }
 }
 el('spell-go').onclick = checkTyped
@@ -525,7 +552,7 @@ el('fix-spell').onkeydown = e => { if (e.key === 'Enter') checkFix() }
 
 // Pick it
 function pick(b, option) {
-  if (b.classList.contains('right')) return
+  if (b.classList.contains('right') || resting(b)) return
   if (Words.same(option, S.word.w)) {
     b.classList.add('right')
     for (const other of el('q-pick').children) other.disabled = true
@@ -535,7 +562,8 @@ function pick(b, option) {
   b.classList.remove('wrong'); void b.offsetWidth; b.classList.add('wrong')
   b.disabled = true
   el('feedback').textContent = 'Not that one. Listen again and try another.'
-  say(S.word.w, { word: true })
+  hear(say(S.word.w, { word: true }))
+  missed()
 }
 
 // Fill in the missing letters
@@ -567,6 +595,7 @@ function renderTiles(word, hidden) {
   box.querySelector('input')?.focus()
 }
 function checkFill() {
+  if (resting(el('fill-go'))) return
   const blanks = [...el('tiles').querySelectorAll('input')]
   const empty = blanks.find(x => !x.value)
   if (empty) return empty.focus()
@@ -578,12 +607,13 @@ function checkFill() {
     el('feedback').textContent = 'Here it is. This word will come back later.'
     el('next').hidden = false
     el('next').focus()
-    return say(S.word.w, { word: true })
+    return hear(say(S.word.w, { word: true }))
   }
   wrong.forEach(x => { x.value = ''; x.classList.add('miss') })
   wrong[0].focus()
   el('feedback').textContent = 'Some letters need another look. Try again.'
-  say(S.word.w, { word: true })
+  hear(say(S.word.w, { word: true }))
+  missed()
 }
 el('fill-go').onclick = checkFill
 el('next').onclick = () => { S.pos++; ask() }

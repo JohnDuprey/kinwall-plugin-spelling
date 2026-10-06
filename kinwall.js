@@ -25,6 +25,14 @@
 // Speech: use the page's own speechSynthesis when it has one (more control over voices); Android's
 // WebView has none, so there use Kinwall.speak when ctx.canSpeak is true.
 //
+// Play time: a family can make a chore of your activity ("10 min of Spelling"). Kinwall counts it in
+// 15-second steps, each only with play in it, so this file passes on real taps and key presses in
+// your page: just "something happened" ({ type: 'active' }), at most once every 3 seconds, never
+// what or where. Saves and Kinwall.speak() count too.
+//
+// No zooming: pinch zoom is stopped here for Safari, which ignores user-scalable=no; keep
+// "maximum-scale=1, user-scalable=no" in your viewport and touch-action: pan-x pan-y on <html>.
+//
 // The theme is also applied as CSS variables on <html>: --kw-bg, --kw-card, --kw-text, --kw-dim,
 // --kw-accent, --kw-accent-ink (text on the accent color), --kw-border, --kw-font, plus
 // data-theme="light" / "dark".
@@ -61,6 +69,21 @@
     pending.set(id, { resolve, reject })
     send({ id, type, ...payload })
   })
+
+  // Real taps and keys only (isTrusted), one message per 3 s: one that comes too soon is sent when
+  // the 3 s are up, so a tap is never lost, only late.
+  let lastActive = 0
+  let queued = false
+  const active = e => {
+    if (!e.isTrusted || queued) return
+    const wait = lastActive + 3000 - Date.now()
+    const go = () => { queued = false; lastActive = Date.now(); send({ type: 'active' }) }
+    if (wait <= 0) go()
+    else { queued = true; setTimeout(go, wait) }
+  }
+  window.addEventListener('pointerdown', active, true)
+  window.addEventListener('keydown', active, true)
+  document.addEventListener('gesturestart', e => e.preventDefault()) // Safari's pinch zoom
 
   window.Kinwall = {
     ready() { send({ type: 'ready' }); return context },

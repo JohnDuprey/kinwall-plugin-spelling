@@ -42,6 +42,8 @@ Kinwall.onActions(callback)                  // something changed while open: ca
 - **Encouraging.** Vary the praise, never shame, no stressful timers, nothing to buy, no links out.
 - **Reduced motion.** When `ctx.reducedMotion` is true, skip animations. Keep a visible focus outline.
 - **Save progress as it happens,** and restore it on `ready()`.
+- **No zooming.** Keep `maximum-scale=1, user-scalable=no` in the viewport and `touch-action: pan-x pan-y` on `html, body`; follow `ctx.textScale` for text size.
+- **Cooldowns.** 🔊 and "Use it in a sentence" rest until the speech ends + `REPLAY_REST` (1.5 s); after a miss, `missed()` rests Check, choices and keys for `MISS_REST` (1.6 s). Resting = `.resting` + `aria-disabled` (focus stays); every handler checks `resting()`.
 - **Fit any screen** from a 393 px phone to a wall display, and keep contrast readable in both themes.
 
 ## Files and workflow

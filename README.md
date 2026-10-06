@@ -6,6 +6,8 @@ A spelling game for [Kinwall](https://github.com/JohnDuprey/kinwall), for ages 6
 - **Apply the rule:** for a list whose categories are spelling rules ("Double the consonant", "Drop the e, then add -ing"), about half of each session is new words to apply the rules to, like a test that gives words that aren't on the list. See [Apply the rule](#apply-the-rule).
 - **Its own keyboard on touch screens:** the system keyboard's word suggestions would give spellings away (and it covers half a tablet on its side), so typed answers use the game's letter keys, sized to fit what's left of the screen. A real keyboard still types.
 - **Hear it again:** a 🔊 button repeats the word, and **Use it in a sentence** reads the sentence when there is one. Words that sound like another word (their, there) come with a sentence, and their **Use it in a sentence** button is highlighted so a kid knows to tap it.
+- **No spamming or guessing:** 🔊 and **Use it in a sentence** rest (dimmed) while the word is said and for 1.5 seconds after, and after a wrong answer the answer buttons, **Check** and the game's keys rest for about 1.5 seconds. Gently dimmed, never hidden, and keyboard focus stays put.
+- **No zooming:** pinch and double-tap zoom are off, so a child can't zoom in and get lost. Text follows Kinwall's text size instead.
 - **Kind corrections:** a missed **Type it** shows what the child wrote over the right spelling, with the differences marked, then they type it the right way to go on. Missed words come back later in the same session. No timers, no losing.
 - **Stars:** a word is ⭐ mastered after it's spelled right the first time 3 times in a row, across sessions. A session is 10 words (or the whole list, if it's shorter), with a friendly summary at the end.
 
@@ -61,7 +63,7 @@ Input that can't be used is dropped, and sending the same list twice changes not
 
 ## Points for practice
 
-A plugin can't give points itself, but Kinwall can: **make it a chore** to give points for practice. Add a chore like "10 min of Spelling practice" (pick Spelling practice as the chore's activity). Kinwall times it, counting only while the game is on screen and the child is answering, and ticks the chore off when the time is reached.
+A plugin can't give points itself, but Kinwall can: **make it a chore** to give points for practice. Add a chore like "10 min of Spelling practice" (pick Spelling practice as the chore's activity). Kinwall times it in 15-second steps, counting a step only when the game is on screen and the child tapped, typed or answered in it, and ticks the chore off when the time is reached.
 
 ## Speech
 

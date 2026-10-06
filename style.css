@@ -16,11 +16,14 @@ html { font-size: 100%; }
 [data-text-scale="xl"] { font-size: 125%; }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-html, body { margin: 0; min-height: 100%; background: var(--kw-bg); color: var(--kw-text); font-family: var(--kw-font); }
+html, body { touch-action: pan-x pan-y; margin: 0; min-height: 100%; background: var(--kw-bg); color: var(--kw-text); font-family: var(--kw-font); }
 button, input, select, textarea { font: inherit; color: var(--kw-text); }
 button { font-weight: 800; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 3px solid var(--kw-text); outline-offset: 3px; }
 button:disabled { cursor: default; }
+/* Resting (a cooldown, game.js): 🔊 while a word is said, answers just after a miss. Dimmed, not gone. */
+.resting { opacity: 0.45; cursor: default; transition: opacity 0.2s; }
+.resting:active { transform: none; filter: none; }
 .nb { white-space: nowrap; }
 .dim { color: var(--kw-dim); font-weight: 600; }
 h1 { margin: 0; font-size: clamp(1.5rem, 5vw, 2.3rem); }
