@@ -90,6 +90,7 @@ function show(name) {
   el('count').textContent = ''
   el('grownups').hidden = !['home', 'nospeech'].includes(name) || ctx.parent === false
   if (name !== 'play') { turn++; if (speech) speech.cancel(); else if (ctx.canSpeak) Kinwall.stopSpeaking() }
+  fitRoom()
   window.scrollTo(0, 0)
 }
 el('back').onclick = () => {
@@ -241,6 +242,7 @@ function ask() {
     el('q-fill').hidden = false
     renderTiles(word.w, Words.blanks(word.w))
   }
+  syncKeyboard()
   sayWord()
 }
 
@@ -279,6 +281,50 @@ async function correct() {
   if (S && S.entry === done && screen === 'play') { S.pos++; ask() }
 }
 
+
+// The game's keyboard (touch screens). Typing goes to the focused answer box; inputmode="none" keeps the
+// system keyboard, and its word suggestions, closed.
+const touch = matchMedia('(pointer: coarse)').matches
+const ROWS = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm']
+let typingIn = null // the answer box the keys type into
+document.addEventListener('focusin', e => { if (e.target.matches?.('.spell, input.tile')) typingIn = e.target })
+function noSystemKeyboard(input) { if (touch) input.setAttribute('inputmode', 'none') }
+noSystemKeyboard(el('spell')); noSystemKeyboard(el('fix-spell'))
+
+function press(key) {
+  const input = typingIn
+  if (!input || input.disabled) return
+  if (key === 'enter') return input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+  if (key === 'back') {
+    if (!input.value) return input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }))
+    input.value = input.value.slice(0, -1)
+  } else input.value = input.maxLength === 1 ? key : input.value + key
+  input.dispatchEvent(new Event('input', { bubbles: true }))
+}
+
+/** Shows the keys while a typed answer is asked for; extra keys for a word's apostrophe or hyphen. */
+function syncKeyboard() {
+  const box = el('kbd')
+  box.hidden = !touch || !['q-type', 'q-fill', 'q-fix'].some(id => !el(id).hidden)
+  if (box.hidden) return fitRoom()
+  const extra = [...new Set((S?.word?.w || '').toLowerCase().replace(/[a-z]/g, ''))].join('')
+  const rows = [ROWS[0], ROWS[1], ROWS[2] + extra]
+  box.innerHTML = rows.map((r, i) => `<div class="kbd-row">${i === 2 ? '<button class="key wide" data-k="back" aria-label="Delete">⌫</button>' : ''}${[...r].map(c => `<button class="key" data-k="${esc(c)}">${esc(c)}</button>`).join('')}${i === 2 ? '<button class="key wide go-key" data-k="enter">Check</button>' : ''}</div>`).join('')
+  fitRoom()
+}
+/** How much room is left above the keys: "short" and "tiny" layouts (style.css) shrink the question to fit. */
+function fitRoom() {
+  const keys = el('kbd').hidden ? 0 : el('kbd').offsetHeight
+  document.querySelector('main').style.paddingBottom = keys ? `${keys + 8}px` : ''
+  const room = innerHeight - keys
+  document.documentElement.dataset.room = room < 300 ? 'short tiny' : room < 460 ? 'short' : ''
+}
+addEventListener('resize', fitRoom)
+fitRoom()
+// pointerdown, not click: the answer box keeps its focus (and caret) while a key is pressed.
+el('kbd').addEventListener('pointerdown', e => { const k = e.target.closest('.key'); if (!k) return; e.preventDefault(); press(k.dataset.k) })
+el('kbd').addEventListener('click', e => { if (e.detail === 0) { const k = e.target.closest('.key'); if (k) press(k.dataset.k) } }) // keyboard/switch access
+
 // Type it
 function checkTyped() {
   const input = el('spell')
@@ -294,6 +340,7 @@ function checkTyped() {
   el('ask').textContent = 'Almost! Here is how it\'s spelled.'
   el('q-type').hidden = true
   el('q-fix').hidden = false
+  syncKeyboard()
   const fix = el('fix-spell')
   fix.value = ''
   fix.focus()
@@ -343,6 +390,7 @@ function renderTiles(word, hidden) {
     Object.assign(input, { className: 'tile blank', maxLength: 1, autocomplete: 'off', spellcheck: false })
     input.setAttribute('autocorrect', 'off')
     input.setAttribute('autocapitalize', 'off')
+    noSystemKeyboard(input)
     input.setAttribute('aria-label', `Missing letter ${hidden.indexOf(i) + 1} of ${hidden.length}`)
     input.dataset.i = i
     input.oninput = () => {

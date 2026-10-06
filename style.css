@@ -104,48 +104,53 @@ input.tile.shown { border-color: var(--fix-ink); background: var(--fix-bg); colo
 .feedback { min-height: 1.6em; font-size: 1.3rem; font-weight: 800; }
 .feedback.good { color: var(--good-ink); }
 @keyframes shake { 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+/* The game's keyboard (touch screens), pinned to the bottom; game.js measures the room left above it
+   (data-room: "short", "short tiny") so the question shrinks to fit. */
+.kbd { position: fixed; left: 0; right: 0; bottom: 0; z-index: 1; margin: 0 auto; padding: 6px 8px 8px; background: var(--kw-bg); display: flex; flex-direction: column; gap: 6px; width: 100%; max-width: 760px; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+.kbd-row { display: flex; justify-content: center; gap: 6px; }
+.key { flex: 1 1 0; min-width: 0; max-width: 64px; min-height: clamp(42px, 8vh, 60px); padding: 0; border: 2px solid var(--kw-border); border-radius: 12px; background: var(--kw-card); font-size: clamp(1.2rem, 3vh, 1.6rem); }
+.key.wide { flex: 1.6 1 0; max-width: 104px; font-size: 1.05rem; }
+.key.go-key { border: none; background: var(--kw-accent); color: var(--kw-accent-ink); }
+.key:active { transform: translateY(1px); filter: brightness(0.92); }
+#play:has(#kbd:not([hidden])) :is(.type, .fill) .go { display: none; } /* the keys have their own Check */
 /* Short: the on-screen keyboard is up (Kinwall fits the activity above it) or a phone is on its side.
    Everything tightens so the word to hear, the box and Check stay in view without scrolling. */
-@media (max-height: 460px) {
-  header { min-height: 44px; padding: 2px 10px; }
-  .icon { width: 40px; height: 40px; font-size: 1.2rem; }
-  main { padding: 48px 12px 8px; gap: 8px; }
-  .screen { gap: 8px; }
-  .hear { gap: 10px; }
-  .say { width: 52px; height: 52px; font-size: 1.5rem; }
-  .ask { font-size: 1.1rem; }
-  .type { flex-wrap: nowrap; gap: 8px; }
-  .spell { min-height: 52px; padding: 4px 12px; font-size: 1.6rem; }
-  .type .go, .fill .go { flex: none; min-height: 52px; padding: 8px 22px; font-size: 1.2rem; }
-  .fix { gap: 6px; }
-  .compare { gap: 4px; padding: 6px 12px; }
-  .letters { font-size: 1.6rem; }
-  .tile { height: 48px; }
-}
+:root[data-room~="short"] header { min-height: 44px; padding: 2px 10px; }
+:root[data-room~="short"] .icon { width: 40px; height: 40px; font-size: 1.2rem; }
+:root[data-room~="short"] main { padding: 48px 12px 8px; gap: 8px; }
+:root[data-room~="short"] .screen { gap: 8px; }
+:root[data-room~="short"] .hear { gap: 10px; }
+:root[data-room~="short"] .say { width: 52px; height: 52px; font-size: 1.5rem; }
+:root[data-room~="short"] .ask { font-size: 1.1rem; }
+:root[data-room~="short"] .type { flex-wrap: nowrap; gap: 8px; }
+:root[data-room~="short"] .spell { min-height: 52px; padding: 4px 12px; font-size: 1.6rem; }
+:root[data-room~="short"] .type .go, :root[data-room~="short"] .fill .go { flex: none; min-height: 52px; padding: 8px 22px; font-size: 1.2rem; }
+:root[data-room~="short"] .fix { gap: 6px; }
+:root[data-room~="short"] .compare { gap: 4px; padding: 6px 12px; }
+:root[data-room~="short"] .letters { font-size: 1.6rem; }
+:root[data-room~="short"] .tile { height: 48px; }
 /* Very short (a tablet on its side with the keyboard up leaves about 200px): the speaker sits beside
    the question, and everything else shrinks again. */
-@media (max-height: 300px) {
-  header { min-height: 36px; }
-  .icon { width: 34px; height: 34px; font-size: 1rem; }
-  main { padding-top: 38px; padding-bottom: 4px; gap: 4px; }
-  .screen { gap: 6px; }
-  #play { display: grid; grid-template-columns: auto 1fr; align-items: center; justify-items: center; column-gap: 10px; }
-  #play > :not(.hear):not(.ask) { grid-column: 1 / -1; }
-  #play .ask { justify-self: start; }
-  .say { width: 44px; height: 44px; font-size: 1.2rem; }
-  .pill { min-height: 40px; padding: 6px 12px; font-size: 0.95rem; }
-  .spell { min-height: 44px; font-size: 1.4rem; }
-  .type .go, .fill .go { min-height: 44px; padding: 6px 18px; font-size: 1.1rem; }
-  .fill { flex-direction: row; gap: 10px; }
-  .tile { height: 44px; font-size: 1.5rem; }
-  .letters { font-size: 1.3rem; }
-  .choices { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-  .choice { min-height: 52px; padding: 6px; border-radius: 16px; font-size: 1.3rem; }
-  .compare { flex-direction: row; gap: 18px; padding: 4px 14px; }
-  .compare .row { gap: 8px; }
-  .tag { width: auto; }
-  .fix > .dim { display: none; } /* the box below says it: "Now type it" */
-}
+:root[data-room~="tiny"] header { min-height: 36px; }
+:root[data-room~="tiny"] .icon { width: 34px; height: 34px; font-size: 1rem; }
+:root[data-room~="tiny"] main { padding-top: 38px; padding-bottom: 4px; gap: 4px; }
+:root[data-room~="tiny"] .screen { gap: 6px; }
+:root[data-room~="tiny"] #play { display: grid; grid-template-columns: auto 1fr; align-items: center; justify-items: center; column-gap: 10px; }
+:root[data-room~="tiny"] #play > :not(.hear):not(.ask) { grid-column: 1 / -1; }
+:root[data-room~="tiny"] #play .ask { justify-self: start; }
+:root[data-room~="tiny"] .say { width: 44px; height: 44px; font-size: 1.2rem; }
+:root[data-room~="tiny"] .pill { min-height: 40px; padding: 6px 12px; font-size: 0.95rem; }
+:root[data-room~="tiny"] .spell { min-height: 44px; font-size: 1.4rem; }
+:root[data-room~="tiny"] .type .go, :root[data-room~="tiny"] .fill .go { min-height: 44px; padding: 6px 18px; font-size: 1.1rem; }
+:root[data-room~="tiny"] .fill { flex-direction: row; gap: 10px; }
+:root[data-room~="tiny"] .tile { height: 44px; font-size: 1.5rem; }
+:root[data-room~="tiny"] .letters { font-size: 1.3rem; }
+:root[data-room~="tiny"] .choices { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+:root[data-room~="tiny"] .choice { min-height: 52px; padding: 6px; border-radius: 16px; font-size: 1.3rem; }
+:root[data-room~="tiny"] .compare { flex-direction: row; gap: 18px; padding: 4px 14px; }
+:root[data-room~="tiny"] .compare .row { gap: 8px; }
+:root[data-room~="tiny"] .tag { width: auto; }
+:root[data-room~="tiny"] .fix > .dim { display: none; } /* the box below says it: "Now type it" */
 @media (prefers-reduced-motion: reduce) { .choice.wrong { animation: none; } .hold.holding .hold-fill { transition: none; } }
 [data-reduced-motion] .choice.wrong { animation: none; }
 
@@ -171,3 +176,8 @@ input.tile.shown { border-color: var(--fix-ink); background: var(--fix-bg); colo
 .sentences input { flex: 1; min-width: 0; margin-top: 0; }
 .error { min-height: 1.2em; color: var(--miss-ink); font-weight: 800; }
 .form .row-buttons { justify-content: flex-start; }
+:root[data-room~="tiny"] .kbd { gap: 4px; padding: 4px 6px 6px; }
+:root[data-room~="tiny"] .kbd-row { gap: 4px; }
+:root[data-room~="tiny"] .key { min-height: 34px; border-radius: 9px; font-size: 1.1rem; }
+:root[data-room~="tiny"] .key.wide { font-size: 0.95rem; }
+:root[data-room~="tiny"] .fix .type { margin-top: -2px; }
