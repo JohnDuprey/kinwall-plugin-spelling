@@ -36,7 +36,16 @@
         <span class="bar big" aria-hidden="true"><span id="level-fill"></span></span>
         <p class="dim" id="level-sub"></p>
       </div>
+      <!-- A list with rules: each category's rule, like the student's binder. -->
+      <button class="pill" id="rules-btn" hidden>📒 Rules</button>
       <div class="patterns" id="patterns"></div>
+    </section>
+
+    <!-- The list's rules: each category's rule text and two examples (list words only once they've been asked). -->
+    <section class="screen" id="rules" hidden>
+      <h1>Rules</h1>
+      <p class="dim" id="rules-sub"></p>
+      <div class="rule-sheet" id="rule-sheet"></div>
     </section>
 
     <section class="screen" id="play" hidden>
@@ -63,6 +72,8 @@
           <div class="row"><span class="tag">You wrote</span><span class="letters" id="fix-try"></span></div>
           <div class="row"><span class="tag">It's spelled</span><span class="letters" id="fix-word"></span></div>
         </div>
+        <!-- Apply the rule: why this word is spelled this way. -->
+        <div class="rule-card" id="rule-card" hidden></div>
         <p class="dim">Now you type it:</p>
         <div class="type">
           <input class="spell" id="fix-spell" type="text" placeholder="Now type it" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" aria-label="Type the word">
@@ -147,6 +158,7 @@
   <script src="kinwall.js"></script>
   <script src="banks.js"></script>
   <script src="words.js"></script>
+  <script src="rules.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

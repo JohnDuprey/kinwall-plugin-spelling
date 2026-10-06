@@ -9,6 +9,8 @@
 //   levels     { open, cur, mix, n }  levels open, the one practiced last, "mix in earlier levels",
 //              and the level-session counter (t below)
 //   bank-<g>   older versions' progress per grade: still read (words.js levelProgress), never written
+//   rule-<id>  { n, w: { base: [r, t] } }  "Apply the rule": new words asked for one rule ('ing-double',
+//              rules.js), across lists, and that rule's session counter (n)
 // r: right the first time this many times in a row; t: the session (n) it was last asked in.
 const el = id => document.getElementById(id)
 // Speech: this page's own speechSynthesis when it has one (it lets us pick the voice); else Kinwall
@@ -24,6 +26,7 @@ let lists = [] // this kid's lists
 const LV = Banks.LEVELS
 let prog = {} // level -> { word: [r, t] }
 let lv = Words.cleanSettings(undefined, LV.length) // { open, cur, mix, n }
+let ruleProg = {} // rule id -> { n, w: { base: [r, t] } }
 let lastPraise = ''
 
 const sleep = ms => new Promise(r => setTimeout(r, ms))
@@ -84,8 +87,8 @@ function pickFrom(list) {
 }
 
 // ---------- Screens ----------
-const SCREENS = ['home', 'nospeech', 'level', 'play', 'done', 'edit', 'editlist']
-const BACK = { level: 'home', play: 'home', done: 'home', edit: 'home', editlist: 'edit' }
+const SCREENS = ['home', 'nospeech', 'level', 'rules', 'play', 'done', 'edit', 'editlist']
+const BACK = { level: 'home', rules: 'list', play: 'home', done: 'home', edit: 'home', editlist: 'edit' }
 let screen = 'home'
 function show(name) {
   screen = name
@@ -101,6 +104,7 @@ el('back').onclick = () => {
   const to = BACK[screen]
   if (to === 'home') home()
   else if (to === 'edit') openEdit()
+  else if (to === 'list') openListPage(pageList)
   else show(to)
 }
 const home = () => { if (canTalk) { renderHome(); show('home') } else show('nospeech') }
@@ -196,6 +200,7 @@ function openLevel(L) {
   box.textContent = ''
   const count = items => `${items.filter(w => Words.mastered(w.r)).length} of ${items.length} ⭐`
   box.append(button('pattern all', `<span>Mix of everything</span><small>${count(all)}</small>`, () => startSession({ kind: 'level', level: L })))
+  el('rules-btn').hidden = true
   for (const [name] of level.patterns) {
     const items = levelItems(L, name)
     box.append(button('pattern', `<span>${noBreakAtHyphens(name)}</span><small>${count(items)}</small>`, () => startSession({ kind: 'level', level: L, pattern: name })))
@@ -206,7 +211,15 @@ function openLevel(L) {
 // ---------- A list with categories ----------
 // Like a level: "Mix of everything", then a button per category (the headings on the teacher's sheet).
 const catWords = (l, cat) => (cat === undefined ? l.words : l.words.filter(w => (Number.isInteger(w.c) && w.c < l.categories.length ? w.c : -1) === cat))
+let pageList = null
+/** A rule's progress, kindly: new words right the first time, and learned after Rules.LEARNED. */
+function ruleNote(id) {
+  const n = Rules.rightCount(ruleProg[id])
+  if (Rules.learned(ruleProg[id])) return `Rule learned ✓ · ${n} new words right on the first try`
+  return n ? `Rule: ${n} new word${n === 1 ? '' : 's'} right on the first try` : 'Rule: try it on new words'
+}
 function openListPage(l) {
+  pageList = l = lists.find(x => x.id === l.id) || l
   el('level-title').textContent = listName(l)
   const done = l.words.filter(w => Words.mastered(w.r)).length
   el('level-fill').style.width = `${l.words.length ? Math.round((done / l.words.length) * 100) : 0}%`
@@ -219,10 +232,41 @@ function openListPage(l) {
   for (const [c, i] of groups) {
     const items = catWords(l, i)
     if (!items.length) continue
-    const b = button('pattern', `<span>${noBreakAtHyphens(c.name)}</span>${c.rule ? `<small class="rule">${esc(c.rule)}</small>` : ''}<small>${count(items)}</small>`, () => startSession({ kind: 'list', list: l, cat: i }))
+    const b = button('pattern', `<span>${noBreakAtHyphens(c.name)}</span>${c.rule ? `<small class="rule">${noBreakAtHyphens(c.rule)}</small>` : ''}<small>${count(items)}</small>` +
+      (c.ruleId ? `<small class="rule-prog${Rules.learned(ruleProg[c.ruleId]) ? ' learned' : ''}">${esc(ruleNote(c.ruleId))}</small>` : ''), () => startSession({ kind: 'list', list: l, cat: i }))
     box.append(b)
   }
+  el('rules-btn').hidden = !l.categories.some(c => c.rule || c.ruleId)
   show('level')
+}
+el('rules-btn').onclick = () => openRules(pageList)
+
+// The list's rules, like the student's binder: each category's rule and two examples. A list word is
+// an example only once it's been asked (seeing it first would give the answer away); until then the
+// examples are new words for the same rule.
+function openRules(l) {
+  el('rules-sub').textContent = listName(l)
+  const box = el('rule-sheet')
+  box.textContent = ''
+  const mine = Rules.listBases(l)
+  l.categories.forEach((c, i) => {
+    if (!c.rule && !c.ruleId) return
+    const text = c.rule || Rules.describe(c.ruleId)
+    const asked = catWords(l, i).filter(w => w.t).map(w => Rules.analyze(w.w, c.ruleId && Rules.parseId(c.ruleId).rule) || { word: w.w })
+    const { suffix } = c.ruleId ? Rules.parseId(c.ruleId) : {}
+    const fresh = c.ruleId ? Rules.bankFor(c.ruleId).filter(b => !mine.has(b)).map(base => ({ base, suffix })) : []
+    const examples = [...asked, ...fresh].slice(0, 2).map(x => x.base ? `${x.base} + ${Rules.shown(x.suffix)} → <b>${esc(Rules.add(x.base, x.suffix))}</b>` : `<b>${esc(x.word)}</b>`)
+    const card = document.createElement('div')
+    card.className = 'rule-item'
+    card.innerHTML = `<div class="rule-head"><h2>${noBreakAtHyphens(c.name)}</h2></div><p>${noBreakAtHyphens(text)}</p>` +
+      (examples.length ? `<div class="word-chips">${examples.map(x => `<span class="chip" lang="en">${x}</span>`).join('')}</div>` : '') +
+      (c.ruleId ? `<p class="dim">${esc(ruleNote(c.ruleId))}</p>` : '')
+    const hear = button('say small', '🔊', () => say(`${c.name}. ${text}`))
+    hear.setAttribute('aria-label', `Hear the rule: ${c.name}`)
+    card.querySelector('.rule-head').prepend(hear)
+    box.append(card)
+  })
+  show('rules')
 }
 
 // ---------- A session ----------
@@ -231,9 +275,17 @@ let S = null // { source, items, queue, pos, n, right, firstTries, newStars, ent
 function startSession(source) {
   let items, picked, n
   if (source.kind === 'list') {
-    items = source.cat === undefined ? source.list.words : catWords(source.list, source.cat)
-    picked = Words.pickSession(items)
+    // A list with rules: about half its words, half new words to apply the rules to (rules.js).
+    const cats = source.list.categories || []
+    const ids = [...new Set((source.cat === undefined ? cats : [cats[source.cat]]).map(c => c && c.ruleId).filter(Boolean))]
+    items = Rules.listSession(source.cat === undefined ? source.list.words : catWords(source.list, source.cat), ids, ruleProg, Rules.listBases(source.list))
+    picked = items.map((_, i) => i)
     n = source.list.n = (source.list.n || 0) + 1
+    for (const id of ids) {
+      const p = ruleProg[id] = ruleProg[id] || { n: 0, w: {} }
+      p.n++
+      items.filter(x => x.id === id).forEach(x => { x.sn = p.n })
+    }
   } else {
     const L = source.level
     // "Mix in earlier levels" (a grown-up's setting): the level's mix also reviews the open levels before it.
@@ -245,8 +297,9 @@ function startSession(source) {
     keep('levels', lv)
   }
   if (!items.length) return
-  const queue = picked.map(i => ({ i, kind: Words.questionType(items[i], Math.random, Banks.soundsLike(items[i].w)) }))
-  S = { source, items, queue, pos: 0, n, right: 0, asked: 0, newStars: [], again: [] }
+  const queue = picked.map(i => ({ i, kind: items[i].id ? 'apply' : Words.questionType(items[i], Math.random, Banks.soundsLike(items[i].w)) }))
+  const learned = new Set(Object.keys(ruleProg).filter(id => Rules.learned(ruleProg[id])))
+  S = { source, items, queue, pos: 0, n, right: 0, asked: 0, newStars: [], again: [], learned }
   if (speech) pickVoice() // voices can arrive late; pick again now they're surely loaded
   show('play')
   ask()
@@ -255,6 +308,11 @@ function startSession(source) {
 /** Saves this kid's progress after an answer: that also tells Kinwall they're still practicing. */
 function persist() {
   const src = S.source
+  if (S.word.id) { // a new word for a rule
+    const w = S.word
+    ruleProg[w.id].w[w.base] = [w.r, w.t]
+    return keep(`rule-${w.id}`, ruleProg[w.id])
+  }
   if (src.kind === 'list') return keep(`list-${src.list.id}`, src.list)
   const w = S.word // one value per level, so a save stays small
   prog[w.lv][w.w] = [w.r, w.t]
@@ -268,15 +326,17 @@ function ask() {
   S.entry = entry
   S.tries = 0
   S.word = word
-  if (!entry.retry) word.t = S.n
+  if (!entry.retry) word.t = word.sn || S.n
   el('count').textContent = `${Math.min(S.asked + 1, S.queue.filter(q => !q.retry).length)} of ${S.queue.filter(q => !q.retry).length}`
   for (const id of ['q-type', 'q-pick', 'q-fill', 'q-fix']) el(id).hidden = true
   el('feedback').textContent = ''
   el('feedback').className = 'feedback'
   el('next').hidden = true
   el('sentence').hidden = !word.s
-  if (entry.kind === 'type') {
-    el('ask').textContent = entry.retry ? "Let's try this one again. Spell the word you hear." : 'Spell the word you hear'
+  if (entry.kind === 'type' || entry.kind === 'apply') {
+    // Apply the rule: the base word and the ending are shown (the base isn't the answer).
+    if (entry.kind === 'apply') el('ask').innerHTML = `<span>${entry.retry ? "Let's try this one again. " : ''}Add the ending:</span> <span class="apply-q" lang="en">${esc(word.base)} + ${esc(Rules.shown(word.suffix))}</span>`
+    else el('ask').textContent = entry.retry ? "Let's try this one again. Spell the word you hear." : 'Spell the word you hear'
     el('q-type').hidden = false
     const input = el('spell')
     input.value = ''
@@ -307,9 +367,10 @@ function ask() {
 function sayWord() {
   const word = S.word
   el('sentence').classList.toggle('nudge', !!word.s && Banks.soundsLike(word.w).length > 0)
+  if (word.id) return say(Rules.prompt(word.base, word.suffix))
   return say(word.w, { word: true })
 }
-el('say').onclick = () => say(S.word.w, { word: true })
+el('say').onclick = () => (S.word.id ? say(Rules.prompt(S.word.base, S.word.suffix)) : say(S.word.w, { word: true }))
 el('sentence').onclick = () => say(S.word.s)
 
 /** The first try at each question counts toward the word's stars; a miss brings the word back later. */
@@ -320,10 +381,10 @@ function scored(right) {
   w.r = Words.record(w.r, right)
   S.asked++
   if (right) S.right++
-  if (right && !was && Words.mastered(w.r)) S.newStars.push(w.w)
+  if (right && !was && Words.mastered(w.r) && !w.id) S.newStars.push(w.w)
   if (!right) {
     if (!S.again.includes(w.w)) S.again.push(w.w)
-    S.queue.splice(Math.min(S.pos + 3, S.queue.length), 0, { i: S.entry.i, kind: 'type', retry: true })
+    S.queue.splice(Math.min(S.pos + 3, S.queue.length), 0, { i: S.entry.i, kind: S.entry.kind === 'apply' ? 'apply' : 'type', retry: true })
   }
   persist()
 }
@@ -373,7 +434,8 @@ function fitRoom() {
   const keys = el('kbd').hidden ? 0 : el('kbd').offsetHeight
   document.querySelector('main').style.paddingBottom = keys ? `${keys + 8}px` : ''
   const room = innerHeight - keys
-  document.documentElement.dataset.room = room < 300 ? 'short tiny' : room < 460 ? 'short' : ''
+  const ruleCard = !el('q-fix').hidden && !el('rule-card').hidden // a correction with its rule needs more room
+  document.documentElement.dataset.room = room < 300 ? 'short tiny' : room < (ruleCard ? 640 : 460) ? 'short' : ''
 }
 addEventListener('resize', fitRoom)
 fitRoom()
@@ -394,6 +456,13 @@ function checkTyped() {
   paint(el('fix-try'), d.attempt, 'miss')
   paint(el('fix-word'), d.word, 'fixed')
   el('ask').textContent = 'Almost! Here is how it\'s spelled.'
+  // Apply the rule: why, with the teacher's rule for that category when the list has one.
+  const card = el('rule-card')
+  card.hidden = !S.word.id
+  if (S.word.id) {
+    const cat = (S.source.list?.categories || []).find(c => c.ruleId === S.word.id)
+    card.innerHTML = `<strong>${esc(cat ? cat.name : 'The rule')}</strong>${cat && cat.rule ? `<span class="teacher">${noBreakAtHyphens(cat.rule)}</span>` : ''}<span>${noBreakAtHyphens(Rules.explain(S.word.base, S.word.suffix))}</span>`
+  }
   el('q-type').hidden = true
   el('q-fix').hidden = false
   syncKeyboard()
@@ -490,7 +559,11 @@ el('next').onclick = () => { S.pos++; ask() }
 function finish() {
   const name = ctx.member ? `, ${ctx.member.name}` : ''
   el('done-title').textContent = `Nice practicing${name}!`
+  // A rule learned this session: Rules.LEARNED new words right the first time.
+  const cats = S.source.list?.categories || []
+  const nowLearned = [...new Set(S.items.filter(x => x.id).map(x => x.id))].filter(id => Rules.learned(ruleProg[id]) && !S.learned.has(id))
   el('done-text').textContent = `You spelled ${S.asked} word${S.asked === 1 ? '' : 's'}, and got ${S.right} right the first time.` +
+    (nowLearned.length ? ` You learned a rule: ${nowLearned.map(id => (cats.find(c => c.ruleId === id) || {}).name || Rules.describe(id)).join(', ')}! 🎉` : '') +
     (S.newStars.length ? ` New ⭐ word${S.newStars.length === 1 ? '' : 's'}:` : S.again.length ? ' Words to keep practicing:' : '')
   const box = el('done-words')
   box.innerHTML = (S.newStars.length ? S.newStars : S.again).map(w => `<span class="chip${S.newStars.length ? ' strong' : ''}">${esc(w)}</span>`).join('')
@@ -636,10 +709,11 @@ el('f-save').onclick = async () => {
   const next = { ...l, title: el('f-title').value.trim().slice(0, 40), test: el('f-test').value || '', words: Words.buildWords(parsed.words, l.words, w => sentences[w.toLowerCase()] || '') }
   if (categories.length) next.categories = categories
   else delete next.categories
+  const tagged = Rules.tagList(next) // each category's rule, for Apply the rule
   el('f-save').disabled = true
   try {
-    await save(`list-${next.id}`, next)
-    lists = [...lists.filter(x => x.id !== next.id), next]
+    await save(`list-${tagged.id}`, tagged)
+    lists = [...lists.filter(x => x.id !== tagged.id), tagged]
     renderEdit()
     show('edit')
   } catch (e) {
@@ -682,7 +756,9 @@ Kinwall.ready().then(async c => {
   el('edit-lists-btn').hidden = ctx.parent !== true
   el('hold-btn').hidden = ctx.parent !== undefined
   const saved = await Kinwall.load().catch(() => ({}))
-  lists = Object.entries(saved).filter(([k, v]) => k.startsWith('list-') && v && Array.isArray(v.words)).map(([, v]) => v)
+  // Each category's rule is worked out again on load (rules.js), so older lists get Apply the rule too.
+  lists = Object.entries(saved).filter(([k, v]) => k.startsWith('list-') && v && Array.isArray(v.words)).map(([, v]) => Rules.tagList(v))
+  ruleProg = Rules.progressFrom(saved)
   // Levels, from level-<L> values and older bank-<grade> ones: stars already earned count, and a kid
   // who already passed levels starts with them open.
   prog = Words.levelProgress(saved, LV)
@@ -704,7 +780,7 @@ async function applyActions() {
   try {
     for (const a of await Kinwall.actions()) {
       try {
-        for (const l of Words.applyAction(lists, a)) {
+        for (const l of Words.applyAction(lists, a).map(Rules.tagList)) {
           await save(`list-${l.id}`, l)
           lists = [...lists.filter(x => x.id !== l.id), l]
         }

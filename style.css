@@ -211,3 +211,21 @@ input.tile.shown { border-color: var(--fix-ink); background: var(--fix-bg); colo
 :root[data-room~="tiny"] .key { min-height: 34px; border-radius: 9px; font-size: 1.1rem; }
 :root[data-room~="tiny"] .key.wide { font-size: 0.95rem; }
 :root[data-room~="tiny"] .fix .type { margin-top: -2px; }
+
+/* Apply the rule: the base word and the ending, the rule card after a miss, and the list's Rules. */
+.apply-q { display: block; margin-top: 6px; font-size: clamp(1.8rem, 6vw, 2.6rem); letter-spacing: 1px; }
+.rule-card { display: flex; flex-direction: column; gap: 4px; width: 100%; max-width: 560px; padding: 10px 16px; border: 2px solid var(--good-border); border-radius: 18px; background: var(--good-bg); color: var(--good-ink); font-size: 1.1rem; font-weight: 700; text-align: left; }
+.rule-card .teacher { font-weight: 600; }
+.pattern small.rule-prog { color: var(--kw-text); font-weight: 700; }
+.pattern small.rule-prog.learned { color: var(--good-ink); }
+.rule-sheet { display: flex; flex-direction: column; gap: 12px; width: 100%; }
+.rule-item { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border: 2px solid var(--kw-border); border-radius: 20px; background: var(--kw-card); text-align: left; font-size: 1.15rem; font-weight: 600; }
+.rule-head { display: flex; align-items: center; gap: 12px; }
+.rule-head h2 { margin: 0; }
+.rule-item .word-chips { justify-content: flex-start; margin-top: 0; }
+.say.small { flex: none; width: 52px; height: 52px; font-size: 1.4rem; }
+:root[data-room~="short"] .apply-q { margin-top: 0; font-size: 1.6rem; }
+:root[data-room~="short"] .rule-card { padding: 6px 12px; font-size: 1rem; gap: 2px; }
+:root[data-room~="tiny"] .apply-q { display: inline; font-size: 1.3rem; }
+:root[data-room~="tiny"] .rule-card { padding: 3px 10px; border-radius: 12px; font-size: 0.85rem; }
+:root[data-room~="tiny"] .rule-card :is(strong, .teacher) { display: none; } /* the why for this word is enough here */
