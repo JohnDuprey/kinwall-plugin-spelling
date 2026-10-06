@@ -47,12 +47,24 @@ function pickVoice() {
 }
 if (speech) { pickVoice(); speech.addEventListener?.('voiceschanged', pickVoice) }
 
+// Safari speaks only once speech has started inside a tap, and the game's first word can come a beat
+// after one. So the first tap anywhere says nothing (a silent utterance), which unlocks speech for later.
+if (speech) addEventListener('pointerdown', function unlock() {
+  removeEventListener('pointerdown', unlock, true)
+  const u = new SpeechSynthesisUtterance(' ')
+  u.volume = 0
+  speech.speak(u)
+}, true)
+// Some browsers accept an utterance and never start it (a frame they won't let speak). If one hasn't
+// started after a moment and Kinwall can speak for us, Kinwall says it instead, from then on.
+let ownSpeechWorks = null // null: not known yet
+
 let speaking = null // the current utterance, referenced so it isn't garbage-collected mid-sentence
 let turn = 0
 
 /** Speaks; resolves once it's finished (or after a fallback). `word`: one spelling word, said slowly and clearly. */
 async function say(text, { word = false } = {}) {
-  if (!speech) {
+  if (!speech || (ownSpeechWorks === false && ctx.canSpeak)) {
     if (!ctx.canSpeak) return
     turn++
     return Kinwall.speak(word ? `${text}.` : text, { rate: word ? RATE.word : RATE.talk, lang: 'en-US' })
@@ -70,10 +82,19 @@ async function say(text, { word = false } = {}) {
     if (voice) { u.voice = voice; u.lang = voice.lang } else u.lang = 'en-US'
     u.rate = word ? RATE.word : RATE.talk
     u.pitch = 1
-    const done = () => { clearTimeout(fallback); if (speaking === u) speaking = null; resolve() }
+    const done = () => { clearTimeout(fallback); clearTimeout(check); if (speaking === u) speaking = null; resolve() }
     const fallback = setTimeout(done, 1500 + spoken.length * 120) // slower speech takes longer
+    u.onstart = () => { ownSpeechWorks = true }
     u.onend = done
     u.onerror = done
+    // Never started: hand this word (and later ones) to Kinwall, when it can speak.
+    const check = ownSpeechWorks === null && ctx.canSpeak ? setTimeout(() => {
+      if (ownSpeechWorks !== null || speaking !== u) return
+      ownSpeechWorks = false
+      speech.cancel()
+      clearTimeout(fallback)
+      Kinwall.speak(spoken, { rate: u.rate, lang: 'en-US' }).then(done)
+    }, 1500) : 0
     speaking = u
     speech.speak(u)
   })
