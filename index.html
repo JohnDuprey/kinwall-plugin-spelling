@@ -3,20 +3,127 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Hello world</title>
+  <title>Spelling practice</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <header>
+    <button class="icon" id="back" aria-label="Back" hidden>←</button>
+    <div class="who" id="who"></div>
+    <div class="count" id="count" aria-live="polite"></div>
+  </header>
   <main>
-    <h1 id="hello">Hello!</h1>
-    <p class="dim" id="who"></p>
-    <button class="big" id="tap">Tap me</button>
-    <p id="count" aria-live="polite"></p>
-    <p class="dim" id="family"></p>
-    <button class="plain" id="reset">Start over</button>
+    <!-- Home: this kid's lists, the grade word banks, and (for parents) Edit lists. Every way in is a tap, which also lets the page speak. -->
+    <section class="screen" id="home" hidden>
+      <h1>Spelling practice</h1>
+      <div class="lists" id="my-lists"></div>
+      <h2>Practice by grade</h2>
+      <div class="grades" id="grades"></div>
+    </section>
+
+    <!-- No speech on this device: showing the word would give the answer away. -->
+    <section class="screen" id="nospeech" hidden>
+      <div class="big-emoji" aria-hidden="true">🔇</div>
+      <h1>This device can't say the words out loud</h1>
+      <p class="dim">Spelling practice says each word without showing it, so it needs a device that can talk. Try a phone, tablet or computer with a voice.</p>
+    </section>
+
+    <!-- One grade's word bank: everything mixed, or one spelling pattern. -->
+    <section class="screen" id="grade" hidden>
+      <h1 id="grade-title"></h1>
+      <div class="patterns" id="patterns"></div>
+    </section>
+
+    <section class="screen" id="play" hidden>
+      <div class="hear">
+        <button class="say" id="say" aria-label="Say the word again">🔊</button>
+        <button class="pill" id="sentence">Use it in a sentence</button>
+      </div>
+      <p class="ask" id="ask"></p>
+      <!-- Type it -->
+      <div class="type" id="q-type" hidden>
+        <input class="spell" id="spell" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" aria-label="Spell the word">
+        <button class="go" id="spell-go">Check</button>
+      </div>
+      <!-- Pick it -->
+      <div class="choices" id="q-pick" hidden></div>
+      <!-- Fill in the missing letters -->
+      <div class="fill" id="q-fill" hidden>
+        <div class="tiles" id="tiles"></div>
+        <button class="go" id="fill-go">Check</button>
+      </div>
+      <!-- A missed Type it: their try over the word, then they type it right to go on. -->
+      <div class="fix" id="q-fix" hidden>
+        <div class="compare">
+          <div class="row"><span class="tag">You wrote</span><span class="letters" id="fix-try"></span></div>
+          <div class="row"><span class="tag">It's spelled</span><span class="letters" id="fix-word"></span></div>
+        </div>
+        <p class="dim">Now you type it:</p>
+        <div class="type">
+          <input class="spell" id="fix-spell" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" aria-label="Type the word">
+          <button class="go" id="fix-go">Check</button>
+        </div>
+      </div>
+      <p class="feedback" id="feedback" aria-live="polite"></p>
+      <button class="go" id="next" hidden>Next →</button>
+    </section>
+
+    <section class="screen" id="done" hidden>
+      <div class="big-emoji" aria-hidden="true">🎉</div>
+      <h1 id="done-title"></h1>
+      <p id="done-text"></p>
+      <div class="word-chips" id="done-words"></div>
+      <div class="row-buttons">
+        <button class="go" id="again">Practice again</button>
+        <button class="pill" id="done-home">All done</button>
+      </div>
+    </section>
+
+    <!-- For parents: this kid's lists. -->
+    <section class="screen" id="edit" hidden>
+      <h1 id="edit-title">Spelling lists</h1>
+      <button class="go" id="new-list">＋ New list</button>
+      <div class="edit-lists" id="edit-lists"></div>
+    </section>
+
+    <section class="screen" id="editlist" hidden>
+      <h1 id="editlist-title">New list</h1>
+      <div class="form">
+        <label>Name <span class="dim">(optional)</span><input id="f-title" type="text" maxlength="40" placeholder="Week 5 words"></label>
+        <label>Test date <span class="dim">(optional)</span><input id="f-test" type="date"></label>
+        <label>Words <span class="dim">(one per line, or commas between)</span>
+          <textarea id="f-words" rows="6" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="friend&#10;because&#10;said"></textarea>
+        </label>
+        <details class="from-bank" id="from-bank">
+          <summary>Add words from a grade</summary>
+          <div class="bank-pick">
+            <select id="f-grade" aria-label="Grade"></select>
+            <select id="f-pattern" aria-label="Spelling pattern"></select>
+          </div>
+          <div class="word-chips" id="f-bank-words"></div>
+        </details>
+        <div id="f-sentences-box" hidden>
+          <h2>Sentences <span class="dim">(optional, for "Use it in a sentence")</span></h2>
+          <div class="sentences" id="f-sentences"></div>
+        </div>
+        <p class="error" id="f-error" aria-live="polite"></p>
+        <div class="row-buttons">
+          <button class="go" id="f-save">Save list</button>
+          <button class="pill" id="f-archive"></button>
+          <button class="pill danger" id="f-delete">Delete</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Parents only: on a parent's device, or (older Kinwall) behind a hold. -->
+    <div class="grownups" id="grownups" hidden>
+      <button class="pill" id="edit-lists-btn">✏️ Edit lists</button>
+      <button class="pill hold" id="hold-btn"><span class="hold-fill" aria-hidden="true"></span><span class="hold-label">Grown-ups: hold to edit lists</span></button>
+    </div>
   </main>
-  <!-- Classic scripts, not type="module": see "Limits" in README.md. kinwall.js first. -->
   <script src="kinwall.js"></script>
-  <script src="app.js"></script>
+  <script src="banks.js"></script>
+  <script src="words.js"></script>
+  <script src="game.js"></script>
 </body>
 </html>

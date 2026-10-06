@@ -8,6 +8,7 @@ This repo is a Kinwall plugin: a small web page that runs in a strict sandbox un
 - **No browser storage:** use `Kinwall.load()` / `Kinwall.save()`, not localStorage, IndexedDB or cookies.
 - **No page-leaving UI:** no `alert`, `confirm` or `prompt`, no form submits, no pop-ups, no links out.
 - **Sound starts from a tap:** begin with a Start button.
+- **Speech:** use the page's own `speechSynthesis`; where there's none (Android), use `Kinwall.speak()` when `ctx.canSpeak`.
 - **`kinwall.js`:** keep it unchanged and load it first.
 - **Manifest:** keep the `id` in `kinwall-plugin.json`, and bump `version` for each release.
 - **Kid-friendly screens:** big touch targets, the `--kw-*` theme colors, and respect `ctx.reducedMotion`.

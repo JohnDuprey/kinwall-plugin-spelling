@@ -10,7 +10,7 @@ entry=$(sed -n 's/.*"entry"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' kinwall-
 [ -f "${entry:-index.html}" ] || { echo "The entry page ${entry:-index.html} is missing" >&2; exit 1; }
 rm -f "$OUT"
 # Everything except repo and tooling files. Kinwall ignores file types it doesn't serve anyway.
-zip -q -r "$OUT" . -x '.*' -x '*/.*' -x 'dev/*' -x 'scripts/*' -x 'node_modules/*' -x '*.md' -x 'LICENSE' -x 'kinwall-plugin.zip'
+zip -q -r "$OUT" . -x '.*' -x '*/.*' -x 'dev/*' -x 'scripts/*' -x 'node_modules/*' -x 'test/*' -x '*.md' -x 'LICENSE' -x 'kinwall-plugin.zip'
 size=$(wc -c < "$OUT" | tr -d ' ')
 [ "$size" -le 5242880 ] || { echo "kinwall-plugin.zip is $size bytes; the limit is 5 MB" >&2; exit 1; }
 echo "Built kinwall-plugin.zip ($size bytes):"

@@ -1,129 +1,55 @@
-# Hello world: a Kinwall plugin starter
+# Spelling practice
 
-A starting point for building a **Kinwall activity**: a small web page that shows up under **Activities** on a family's Kinwall, such as a reading game, a math quiz or a drawing prompt. This one greets whoever is playing and counts their taps. Each person's count is saved separately, plus one for the whole family.
+A spelling game for [Kinwall](https://github.com/JohnDuprey/kinwall), for ages 6 to 11. Kids practice this week's spelling list, or 1st to 5th grade words, and earn stars as words stick. Kinwall says each word out loud and never shows it, just like a spelling test.
 
-To make your own, use this repo as a template, rename it `kinwall-plugin-<your-idea>`, and change the files below.
+- **Three kinds of questions, mixed:** **Type it** (spell the whole word), **Pick it** (choose the right spelling from look-alike misspellings) and **Fill in the missing letters** (the tricky parts are blanked). New words start with picking and filling in; practiced words get typed.
+- **Hear it again:** a 🔊 button repeats the word, and **Use it in a sentence** reads the sentence when there is one. Words that sound like another word (their, there) come with a sentence, said right after the word.
+- **Kind corrections:** a missed **Type it** shows what the child wrote over the right spelling, with the differences marked, then they type it the right way to go on. Missed words come back later in the same session. No timers, no losing.
+- **Stars:** a word is ⭐ mastered after it's spelled right the first time 3 times in a row, across sessions. A session is 10 words (or the whole list, if it's shorter), with a friendly summary at the end.
 
-## What's here
+## Word lists
 
-| File | What it is |
+A grown-up adds each kid's lists: the words (typed or pasted, one per line or with commas), an optional sentence for each word, an optional name and test date. Words can also be picked from the grade banks. The newest list comes first on the kid's screen; old lists can be archived or deleted. Lists are saved for that kid.
+
+**Who can edit lists:** on a parent's phone or computer, **Edit lists** shows on the home screen. Open Spelling practice there, pick the kid as who's playing, and add their words. Wall screens and kids' own devices don't show it. On an older Kinwall that doesn't say whether it's a parent's device, a **Grown-ups: hold to edit lists** button opens it after a two-second hold: it keeps casual taps out; it isn't a lock.
+
+## Grade banks
+
+Over 750 built-in words, about 150 for each grade from 1st to 5th, grouped by spelling pattern: short and long vowels, blends and digraphs, silent e, vowel teams, r-controlled vowels, double letters, -ed and -ing, plurals, prefixes and suffixes, sound-alikes, tricky words and more. Kids can practice a whole grade (a mix of everything) or one pattern, with no setup. Each session draws the words practiced least and longest ago, plus a few recently missed, so a kid works through the whole bank over time instead of seeing the same few. The lists were written for this plugin from common words and patterns.
+
+## Points for practice
+
+A plugin can't give points itself, but Kinwall can: **make it a chore** to give points for practice. Add a chore like "10 min of Spelling practice" (pick Spelling practice as the chore's activity). Kinwall times it, counting only while the game is on screen and the child is answering, and ticks the chore off when the time is reached.
+
+## Speech
+
+Every question is spoken, so Spelling practice needs a voice. It uses the device's own speech when the browser has it, and otherwise asks Kinwall to speak (the Kinwall Android app speaks with Android's text-to-speech). Where neither works, it says "This device can't say the words out loud" instead of showing the words, which would give the answers away.
+
+## Install
+
+In Kinwall, go to **Activities → Get more activities**. Spelling practice is listed under **Reviewed by Kinwall** once it's been reviewed.
+
+## Develop
+
+This plugin is built from [kinwall-plugin-hello-world](https://github.com/JohnDuprey/kinwall-plugin-hello-world); its README covers the SDK, the limits and how publishing works. `AGENTS.md` has the same rules for AI coding assistants.
+
+- **Preview:** `python3 -m http.server 8000`, then open http://localhost:8000/dev/. The **Device** menu switches between a parent's device, a wall or kid's device, and an older Kinwall.
+- **Test:** `node --test` runs the tests for the word logic in `words.js` (misspellings, blanks, the letter diff, stars and session picking) and the banks in `banks.js`.
+- **Package:** `scripts/package.sh` builds `kinwall-plugin.zip`.
+- **Release:** bump `version` in `kinwall-plugin.json` and publish a release tagged `v<version>`. The workflow attaches the package.
+
+### Saved data
+
+Everything is saved for whoever is playing, one value per list so each stays well under 16 KB:
+
+| Key | Value |
 |---|---|
-| `kinwall-plugin.json` | The manifest: id, name, version and how it's listed. [Reference below](#the-manifest). |
-| `index.html`, `app.js`, `style.css` | The plugin itself. Replace these with yours. |
-| `kinwall.js` | The SDK: the only way a plugin talks to Kinwall. Keep it, and don't edit it. |
-| `dev/index.html` | A preview page that stands in for Kinwall, so you can build without running it. |
-| `scripts/package.sh` | Builds `kinwall-plugin.zip`, the package Kinwall installs. |
-| `.github/workflows/release.yml` | Builds the package and attaches it to each GitHub release. |
-| `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md` | Instructions for AI coding assistants. See [Building with an AI assistant](#building-with-an-ai-assistant). |
+| `list-<id>` | `{ id, title, test, archived, created, n, words: [{ w, s, r, t }] }`: up to 60 words, each with its sentence, streak (`r`) and the session it was last asked in (`t`) |
+| `bank-<grade>` | `{ n, w: { word: [r, t] } }`: progress in that grade's bank, for words asked so far |
+| `prefs` | `{ grade }`: the grade picked last |
 
-## Quick start
-
-1. **Preview it.** From this folder:
-   ```sh
-   python3 -m http.server 8000
-   ```
-   Open http://localhost:8000/dev/. Pick who's playing, switch light and dark, and watch the messages in the log.
-2. **Make it yours.** Set a new `id`, `name` and `description` in `kinwall-plugin.json`, then edit `index.html`, `app.js` and `style.css`.
-3. **Package it.**
-   ```sh
-   scripts/package.sh
-   ```
-   To try the package in a Kinwall, go to **Activities → Get more activities → Upload a kinwall-plugin.zip**. Only admins can install.
-4. **Publish it.**
-   1. Push to GitHub and add the `kinwall-plugin` topic to the repo.
-   2. Bump `version` in the manifest.
-   3. Publish a release tagged `v<version>`. The workflow attaches `kinwall-plugin.zip` to it.
-   4. On a self-hosted Kinwall, families can install it by pasting the repo's link into **Get more activities**.
-5. **Get it reviewed.** Reviewed plugins are listed for every family, and they're the only ones kinwall.family can install. [Open an issue](https://github.com/JohnDuprey/kinwall/issues) with your repo's link. Each new version is reviewed too before families get it. See [Building activity plugins](https://github.com/JohnDuprey/kinwall/blob/main/docs/contributing/plugins.md).
-
-Kinwall only installs the **built package attached to the latest release**, never your source files. If your plugin has a build step (TypeScript, a bundler), run it in the workflow and package the output folder: `scripts/package.sh dist`.
-
-## The SDK (`kinwall.js`)
-
-```js
-const ctx = await Kinwall.ready()
-// ctx.member: { id, name, avatar, color } of whoever is playing, or null ("Just playing")
-// ctx.theme: { bg, card, text, dim, accent, accentInk, border, font, dark }
-// ctx.textScale: 's' | 'm' | 'l' | 'xl'; ctx.reducedMotion: boolean; ctx.locale: e.g. 'en-US'
-
-const mine = await Kinwall.load()                    // this person's saved data, as { key: value }
-const ours = await Kinwall.load({ shared: true })    // the whole family's
-await Kinwall.save('progress', { level: 2 })         // any JSON value; per person
-await Kinwall.save('highScore', 900, { shared: true })
-await Kinwall.save('progress', null)                 // null deletes it
-Kinwall.close()                                      // back to Activities
-```
-
-The theme is also set as CSS variables on `<html>` (`--kw-bg`, `--kw-card`, `--kw-text`, `--kw-dim`, `--kw-accent`, `--kw-accent-ink` (text on the accent color), `--kw-border`, `--kw-font`), with `data-theme="light"` or `"dark"`. Use them, and your plugin will match every family's colors.
-
-## The manifest
-
-| Field | Required | Notes |
-|---|---|---|
-| `id` | Yes | 2-40 lowercase letters, digits and dashes. **Never change it**: it's how updates and saved data find your plugin. |
-| `name` | Yes | Up to 40 characters, shown on the Activities card. |
-| `version` | Yes | Bump it for every release. The release tag must be `v<version>`. |
-| `description` | | Up to 300 characters. |
-| `entry` | | The page to open. Default `index.html`. |
-| `emoji`, `color` | | The card's icon and color (`#RRGGBB`). |
-| `categories` | | Up to 8, e.g. `["Learn to read"]`, `["Math"]`, `["Games"]`. |
-| `ages` | | `{ "min": 4, "max": 7 }`; `max` is optional. |
-| `author`, `homepage` | | Shown to the family admin. |
-
-## Limits
-
-A plugin runs in a **sandboxed frame with its own strict security policy**, on a screen that children use. That's what lets families install it safely. It also means some ordinary web code won't work:
-
-**Blocked:**
-- **No network at all.** `fetch`, `XMLHttpRequest`, WebSockets and `EventSource` are blocked, even for your own files. Put data such as word lists and levels in a `.js` file, not a `.json` you fetch.
-- **Nothing from other sites.** Scripts, styles, images, fonts and audio load only from your own package, plus `data:` and `blob:` URLs. That rules out CDNs, Google Fonts, analytics and ads, so bundle what you need.
-- **Classic scripts only.** `<script type="module">` and `import()` don't work in the sandbox. Use plain `<script src>`, or bundle to a single classic script (an IIFE).
-- **No web workers.**
-- **No browser storage.** `localStorage`, `sessionStorage`, IndexedDB and cookies are unavailable, so use `Kinwall.save`.
-- **No dialogs, forms, pop-ups or navigation.** `alert()`, `confirm()` and `prompt()` do nothing, and form submission and new windows are blocked. **One page:** if the plugin's page loads another page (a link, `location`, even a reload of its own), Kinwall stops the plugin. Switch screens with JavaScript instead.
-- **No device access.** Camera, microphone, location, fullscreen and pointer lock aren't available.
-
-**Needs a tap first:**
-- **Sound and speech.** Browsers only play audio or `speechSynthesis` after someone taps inside your page, so start with a **Start** button.
-
-**What you can see:**
-- **Only who's playing, the theme, text size, motion preference and locale.** No calendar, chores, lists or photos.
-
-**Size:**
-- **The package:** 5 MB as a zip. Unpacked: 10 MB, 200 files, 2 MB per file.
-- **Per family:** 20 plugins, 50 MB of plugin files in all.
-- **File types served:** `html js mjs css json txt svg png jpg jpeg gif webp mp3 ogg wav m4a woff woff2`. Anything else, such as READMEs or source maps, is skipped.
-
-**Saved data:**
-- **Size:** 100 values per person (and for the family), 16 KB of JSON each, and 1 MB for everyone together.
-- **Rate:** up to 30 saves in 10 seconds. Save when something changes, not on a timer.
-- **Kept across updates.**
-- **Deleted when the family removes the plugin.**
-
-**Devices:** the plugin runs on phones, tablets and wall screens, including older iPads. Plain JavaScript without the very newest syntax is safest; a bundler can transpile it.
-
-## Designing for a family wall
-
-- **Big targets.** At least 44 px, and bigger for small kids. The wall is touched, not clicked.
-- **Short and readable.** Big text, few words, and speech or pictures for kids who can't read yet.
-- **Match the family.** Use the `--kw-*` colors, and check both light and dark in the preview.
-- **Respect reduced motion.** If `ctx.reducedMotion` is true, skip shaking and flying animations.
-- **Save often.** People walk away mid-game, so save progress as it happens.
-- **Kind by default.** Encourage, don't punish, with no timers that stress and no streak-shaming. Nothing to buy, no ads, no links out.
-
-## Building with an AI assistant
-
-`AGENTS.md` has everything an assistant needs: the rules above, the SDK, the file layout and how to test.
-
-- **Claude Code** reads `CLAUDE.md`, which points to `AGENTS.md`.
-- **GitHub Copilot** reads `.github/copilot-instructions.md`. Its coding agent also reads `AGENTS.md`.
-- **Codex and other agents** read `AGENTS.md`.
-- **ChatGPT, Claude.ai or another chat assistant:** paste in `AGENTS.md`, `kinwall.js` and your current files, then describe what you want. For example:
-
-  > Using the Kinwall plugin rules in AGENTS.md, turn this hello-world plugin into a counting game for ages 3-5: show 1-10 animals, the child taps the matching number, with spoken praise and progress saved per child. Give me complete index.html, app.js, style.css and kinwall-plugin.json.
-
-Whatever writes the code, test it in `dev/`, then as a package in a real Kinwall, before you publish.
+Each answer saves its list or bank, which also tells Kinwall the child is still practicing.
 
 ## License
 
-MIT, so you can do anything with this starter. Your plugin can use any license you like, because plugins are separate programs that talk to Kinwall only through messages.
+MIT

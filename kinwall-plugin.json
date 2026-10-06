@@ -1,13 +1,13 @@
 {
-  "id": "hello-world",
-  "name": "Hello world",
+  "id": "spelling",
+  "name": "Spelling practice",
   "version": "1.0.0",
-  "description": "A starter plugin: greets whoever is playing and counts their taps.",
+  "description": "Practice this week's spelling words, or 1st to 5th grade words by pattern. Hear each word, then type it, pick the right spelling or fill in the missing letters. A grown-up adds the list; stars are saved for each child.",
   "entry": "index.html",
-  "emoji": "👋",
-  "color": "#7ED9A6",
-  "categories": ["Examples"],
-  "ages": { "min": 3 },
-  "author": "Your name",
-  "homepage": "https://github.com/JohnDuprey/kinwall-plugin-hello-world"
+  "emoji": "🐝",
+  "color": "#F5C84C",
+  "categories": ["Spelling", "Learn to read"],
+  "ages": { "min": 6, "max": 11 },
+  "author": "Kinwall",
+  "homepage": "https://github.com/JohnDuprey/kinwall-plugin-spelling"
 }

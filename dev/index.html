@@ -26,6 +26,7 @@
     <strong>Kinwall plugin preview</strong>
     <label>Who's playing <select id="who"></select></label>
     <label>Theme <select id="theme"><option>light</option><option>dark</option></select></label>
+    <label>Device <select id="device"><option value="parent">A parent's</option><option value="wall">Wall or kid's</option><option value="">Older Kinwall</option></select></label>
     <button id="reload">Reload plugin</button>
     <button id="clear">Clear saved data</button>
   </div>
@@ -51,6 +52,9 @@
       const v = n => css.getPropertyValue(n).trim()
       return { bg: v('--bg'), card: v('--card'), text: v('--text'), dim: v('--dim'), accent: v('--accent'), accentInk: v('--accent-ink'), border: v('--border'), font: 'system-ui, sans-serif', dark: $('theme').value === 'dark' }
     }
+    // ctx.parent: true on a parent's device, false on wall screens and kids' devices. ctx.canSpeak:
+    // Kinwall.speak works. Older Kinwall sends neither.
+    const newer = () => ($('device').value ? { parent: $('device').value === 'parent', canSpeak: 'speechSynthesis' in window } : {})
     const load = () => { document.documentElement.dataset.theme = $('theme').value; frame.src = '../index.html?' + Date.now() }
     const reply = (msg, ok, value, error) => frame.contentWindow.postMessage({ kinwall: 1, re: msg.id, ok, value, error }, '*')
 
@@ -61,7 +65,7 @@
       const member = MEMBERS.find(m => m.id === $('who').value) || null
       const scope = msg.shared ? 'shared' : (member ? member.id : '')
       if (msg.type === 'ready') {
-        frame.contentWindow.postMessage({ kinwall: 1, type: 'context', context: { member, theme: theme(), textScale: 'm', reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches, locale: navigator.language } }, '*')
+        frame.contentWindow.postMessage({ kinwall: 1, type: 'context', context: { member, theme: theme(), textScale: 'm', reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches, locale: navigator.language, ...newer() } }, '*')
         log(`ready → context for ${member ? member.name : 'nobody'}`)
       } else if (msg.type === 'load') {
         reply(msg, true, read(scope)); log(`load (${scope || 'just playing'})`)
@@ -75,12 +79,21 @@
         else if (!(msg.key in data) && Object.keys(data).length >= 100) return reply(msg, false, undefined, 'At most 100 values per person')
         else data[msg.key] = msg.value
         write(scope, data); reply(msg, true); log(`save ${msg.key} = ${text} (${scope || 'just playing'})`)
+      } else if (msg.type === 'speak') {
+        // Kinwall.speak: Kinwall says it (here, with this page's voice) and answers once it's done.
+        const u = new SpeechSynthesisUtterance(String(msg.text).slice(0, 500))
+        u.rate = msg.rate || 1; u.lang = msg.lang || 'en-US'
+        u.onend = u.onerror = () => reply(msg, true)
+        speechSynthesis.cancel(); speechSynthesis.speak(u); log(`speak "${u.text}"`)
+      } else if (msg.type === 'stopSpeaking') {
+        speechSynthesis.cancel(); log('stopSpeaking')
       } else if (msg.type === 'close') {
         log('close (Kinwall goes back to Activities)')
       }
     })
     $('who').onchange = load
     $('theme').onchange = load
+    $('device').onchange = load
     $('reload').onclick = load
     $('clear').onclick = () => { Object.keys(localStorage).filter(k => k.startsWith('kinwall-dev:')).forEach(k => localStorage.removeItem(k)); log('cleared saved data'); load() }
     load()
