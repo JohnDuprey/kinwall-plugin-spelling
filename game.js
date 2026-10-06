@@ -82,19 +82,25 @@ async function say(text, { word = false } = {}) {
     if (voice) { u.voice = voice; u.lang = voice.lang } else u.lang = 'en-US'
     u.rate = word ? RATE.word : RATE.talk
     u.pitch = 1
-    const done = () => { clearTimeout(fallback); clearTimeout(check); if (speaking === u) speaking = null; resolve() }
-    const fallback = setTimeout(done, 1500 + spoken.length * 120) // slower speech takes longer
-    u.onstart = () => { ownSpeechWorks = true }
-    u.onend = done
-    u.onerror = done
+    let handed = false
+    const done = () => { if (handed) return; clearTimeout(fallback); clearTimeout(check); if (speaking === u) speaking = null; resolve() }
     // Never started: hand this word (and later ones) to Kinwall, when it can speak.
-    const check = ownSpeechWorks === null && ctx.canSpeak ? setTimeout(() => {
-      if (ownSpeechWorks !== null || speaking !== u) return
+    const handOff = () => {
+      if (handed || ownSpeechWorks || !ctx.canSpeak || mine !== turn) return false // a newer word cut this one off: not a sign
+      handed = true
       ownSpeechWorks = false
+      clearTimeout(fallback); clearTimeout(check)
+      if (speaking === u) speaking = null
       speech.cancel()
-      clearTimeout(fallback)
-      Kinwall.speak(spoken, { rate: u.rate, lang: 'en-US' }).then(done)
-    }, 1500) : 0
+      Kinwall.speak(spoken, { rate: u.rate, lang: 'en-US' }).then(resolve)
+      return true
+    }
+    const fallback = setTimeout(done, 1500 + spoken.length * 120) // slower speech takes longer
+    let started = false
+    u.onstart = () => { started = true; ownSpeechWorks = true }
+    // Safari ends (or errors) an utterance it won't say without ever starting it.
+    u.onend = u.onerror = e => { if (!started && ownSpeechWorks === null && !/interrupted|canceled/.test(e?.error || '') && handOff()) return; done() }
+    const check = ownSpeechWorks === null && ctx.canSpeak ? setTimeout(() => { if (!started) handOff() }, 1500) : 0
     speaking = u
     speech.speak(u)
   })
