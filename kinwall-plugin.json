@@ -1,8 +1,8 @@
 {
   "id": "spelling",
   "name": "Spelling practice",
-  "version": "1.3.0",
-  "description": "Practice this week's spelling words, or work up through ten levels of words by spelling pattern. Hear each word, then type it, pick the right spelling or fill in the missing letters, and apply a list's spelling rules (like doubling the consonant before -ing) to new words. A grown-up adds lists and sets levels; stars are saved for each child.",
+  "version": "1.3.1",
+  "description": "Practice this week's spelling words or climb ten levels of words. Hear each word, then type it, pick the right spelling or fill in missing letters, and apply this week's rules to new words. A grown-up adds lists and sets levels; stars are saved for each child.",
   "entry": "index.html",
   "emoji": "🐝",
   "color": "#F5C84C",
