@@ -144,12 +144,8 @@ function renderHome() {
     card.innerHTML = `<div class="list-head"><div><div class="list-name">${esc(listName(l))}</div>
       <div class="dim">${l.words.length} word${l.words.length === 1 ? '' : 's'} · ${done} ⭐${l.test && l.title ? ` · test ${esc(dateText(l.test))}` : ''}</div></div></div>`
     card.querySelector('.list-head').append(button('go', 'Practice', () => (l.categories?.length ? openListPage(l) : startSession({ kind: 'list', list: l }))))
-    if (k === 0) { // the newest list: each word and how close it is to mastered
-      const chips = document.createElement('div')
-      chips.className = 'word-chips'
-      for (const w of l.words) chips.insertAdjacentHTML('beforeend', `<span class="chip${Words.mastered(w.r) ? ' strong' : ''}">${esc(w.w)} <span class="marks" aria-label="${Math.min(w.r || 0, 3)} of 3">${stars(w.r)}</span></span>`)
-      card.append(chips)
-    }
+    // How far along, never the words themselves: seeing them spelled would give the answers away.
+    if (k === 0) card.insertAdjacentHTML('beforeend', `<span class="bar big" aria-hidden="true"><span style="width:${l.words.length ? Math.round(done / l.words.length * 100) : 0}%"></span></span>`)
     box.append(card)
   }
   if (!mine.length) box.innerHTML = `<p class="dim">${ctx.parent === false ? 'No spelling list yet. A grown-up can add one from their phone.' : 'No spelling list yet. Practice a level below, or a grown-up can add this week\'s words.'}</p>`

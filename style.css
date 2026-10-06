@@ -52,7 +52,7 @@ main { min-height: 100vh; display: flex; flex-direction: column; align-items: ce
 .list-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .list-name { font-size: 1.35rem; font-weight: 800; }
 .word-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 12px; }
-.list-card .word-chips { justify-content: flex-start; }
+.list-card .bar { margin-top: 12px; }
 .chip { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 6px 14px; border: 2px solid var(--kw-border); border-radius: 999px; background: var(--kw-bg); font-size: 1.15rem; font-weight: 700; }
 .chip.strong { border-color: var(--good-border); background: var(--good-bg); color: var(--good-ink); }
 .marks { letter-spacing: 1px; font-size: 0.95rem; color: var(--kw-dim); }

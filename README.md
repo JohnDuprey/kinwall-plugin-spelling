@@ -10,7 +10,7 @@ A spelling game for [Kinwall](https://github.com/JohnDuprey/kinwall), for ages 6
 
 ## Word lists
 
-A grown-up adds each kid's lists: the words (typed or pasted, one per line or with commas), an optional sentence for each word, an optional name and test date. Words can also be picked from the word banks. The newest list comes first on the kid's screen; old lists can be archived or deleted. Lists are saved for that kid.
+A grown-up adds each kid's lists: the words (typed or pasted, one per line or with commas), an optional sentence for each word, an optional name and test date. Words can also be picked from the word banks. The newest list comes first on the kid's screen, with a progress bar but never the words themselves (seeing them spelled would give the answers away); old lists can be archived or deleted. Lists are saved for that kid.
 
 **Categories:** a school sheet often groups the words under headings, like "Double the consonant", "Drop the e, then add -ing" and "Just add -ing". In the words box, a line ending in ":" (or starting with "## ") starts a category, so a pasted sheet keeps its groups, and each word's menu under **Sentences** moves it to another category. A list with categories opens to **Mix of everything** plus a button for each category, with its own ⭐ count, like a level's patterns. Lists without categories work as before.
 
