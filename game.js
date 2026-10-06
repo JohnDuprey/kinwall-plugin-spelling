@@ -435,7 +435,13 @@ function fitRoom() {
   document.querySelector('main').style.paddingBottom = keys ? `${keys + 8}px` : ''
   const room = innerHeight - keys
   const ruleCard = !el('q-fix').hidden && !el('rule-card').hidden // a correction with its rule needs more room
-  document.documentElement.dataset.room = room < 300 ? 'short tiny' : room < (ruleCard ? 640 : 460) ? 'short' : ''
+  const root = document.documentElement
+  root.dataset.room = room < 300 ? 'short tiny' : room < (ruleCard ? 640 : 460) ? 'short' : ''
+  // The guesses above can fall short (a long rule, big text): step down until the page fits above the keys.
+  for (const next of ['short', 'short tiny']) {
+    if (document.scrollingElement.scrollHeight <= innerHeight + 1) break
+    if (root.dataset.room.split(' ').length < next.split(' ').length) root.dataset.room = next
+  }
 }
 addEventListener('resize', fitRoom)
 fitRoom()
