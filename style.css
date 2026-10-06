@@ -136,7 +136,7 @@ input.tile.shown { border-color: var(--fix-ink); background: var(--fix-bg); colo
 .kbd { position: fixed; left: 0; right: 0; bottom: 0; z-index: 1; margin: 0 auto; padding: 6px 8px 8px; background: var(--kw-bg); display: flex; flex-direction: column; gap: 6px; width: 100%; max-width: 760px; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
 .kbd-row { display: flex; justify-content: center; gap: 6px; }
 .key { flex: 1 1 0; min-width: 0; max-width: 64px; min-height: clamp(42px, 8vh, 60px); padding: 0; border: 2px solid var(--kw-border); border-radius: 12px; background: var(--kw-card); font-size: clamp(1.2rem, 3vh, 1.6rem); }
-.key.wide { flex: 1.6 1 0; max-width: 104px; font-size: 1.05rem; }
+.key.wide { flex: 1.8 1 0; max-width: 104px; padding: 0 2px; white-space: nowrap; font-size: clamp(0.6rem, 3.2vw, 1.05rem); } /* "Check" fits a narrow phone */
 .key.go-key { border: none; background: var(--kw-accent); color: var(--kw-accent-ink); }
 .key:active { transform: translateY(1px); filter: brightness(0.92); }
 #play:has(#kbd:not([hidden])) :is(.type, .fill) .go { display: none; } /* the keys have their own Check */
@@ -209,7 +209,7 @@ input.tile.shown { border-color: var(--fix-ink); background: var(--fix-bg); colo
 :root[data-room~="tiny"] .kbd { gap: 4px; padding: 4px 6px 6px; }
 :root[data-room~="tiny"] .kbd-row { gap: 4px; }
 :root[data-room~="tiny"] .key { min-height: 34px; border-radius: 9px; font-size: 1.1rem; }
-:root[data-room~="tiny"] .key.wide { font-size: 0.95rem; }
+:root[data-room~="tiny"] .key.wide { font-size: clamp(0.6rem, 3vw, 0.95rem); }
 :root[data-room~="tiny"] .fix .type { margin-top: -2px; }
 
 /* Apply the rule: the base word and the ending, the rule card after a miss, and the list's Rules. */
