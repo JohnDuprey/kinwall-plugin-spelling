@@ -1,7 +1,7 @@
 {
   "id": "spelling",
   "name": "Spelling practice",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Practice this week's spelling words, or work up through ten levels of words by spelling pattern. Hear each word, then type it, pick the right spelling or fill in the missing letters. A grown-up adds lists and sets levels; stars are saved for each child.",
   "entry": "index.html",
   "emoji": "🐝",
@@ -15,5 +15,62 @@
     "max": 11
   },
   "author": "Kinwall",
-  "homepage": "https://github.com/JohnDuprey/kinwall-plugin-spelling"
+  "homepage": "https://github.com/JohnDuprey/kinwall-plugin-spelling",
+  "actions": {
+    "addList": {
+      "description": "Add a spelling list for this child, like this week's words from school. If they already have a list with this title (not archived), the words are added to it instead, keeping their stars. Give words as a flat list, or grouped in categories from the sheet's headings, or both.",
+      "input": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 40,
+            "description": "The list's name, e.g. \"Adding -ing\" or \"Week 5\""
+          },
+          "words": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 60,
+            "description": "Words in no category, up to 60 in all"
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "maxItems": 10,
+            "description": "Groups from the teacher's sheet: [{ \"name\": \"Drop the e, then add -ing\" (up to 60 characters), \"words\": [\"giving\", \"hoping\"], \"rule\": optional short rule text (up to 200 characters) }]"
+          },
+          "sentences": {
+            "type": "object",
+            "description": "Optional sentences for \"Use it in a sentence\", by word: { \"giving\": \"Thank you for giving me a hug.\" }"
+          },
+          "testDate": {
+            "type": "string",
+            "maxLength": 10,
+            "description": "The test day, YYYY-MM-DD"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      }
+    },
+    "archiveList": {
+      "description": "Archive this child's list with this title (when the test is over). Its stars are kept.",
+      "input": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 40,
+            "description": "The list's name"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      }
+    }
+  }
 }

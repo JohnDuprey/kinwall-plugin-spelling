@@ -23,12 +23,16 @@ await Kinwall.save(key, jsonValue)          // per person; { shared: true } for 
 await Kinwall.speak(text, { rate, lang })   // Kinwall says it; resolves when done, never rejects
 Kinwall.stopSpeaking()
 Kinwall.close()                             // back to Activities
+const todo = await Kinwall.actions()         // waiting requests from other apps: [{ id, action, input, createdAt }]; { shared: true } for the family's
+await Kinwall.done(id)                       // applied or dropped: Kinwall deletes it
+Kinwall.onActions(callback)                  // something changed while open: call actions() again
 ```
 
 - **Parents:** `ctx.parent` is true on a parent's device, false on wall screens and kids' devices, and undefined on older Kinwall. Show grown-up settings only when it's true (or behind a simple gate when it's undefined).
 - **Speech:** use the page's own `speechSynthesis` when it exists; otherwise use `Kinwall.speak` when `ctx.canSpeak` (Android's WebView has no `speechSynthesis`); otherwise say the activity needs a device that can talk.
 - **Limits:** keys are 1-64 characters, values are JSON up to 16 KB, at most 100 keys per person, 1 MB for the whole family, and 30 saves in 10 seconds.
 - **Failures:** saving can fail when offline. Catch the error and keep going.
+- **Actions:** `addList` and `archiveList` (declared in `kinwall-plugin.json`) go through `Words.applyAction`: validate every input, keep applying idempotent (merge, never blindly append), and call `done(id)` after saving, also for input that's dropped.
 - **Colors:** style with the `--kw-bg`, `--kw-card`, `--kw-text`, `--kw-dim`, `--kw-accent`, `--kw-accent-ink` (text on the accent color), `--kw-border` and `--kw-font` CSS variables. Kinwall sets them to the family's theme, and `[data-theme="dark"]` is set in dark mode.
 
 ## Design
@@ -42,7 +46,7 @@ Kinwall.close()                             // back to Activities
 
 ## Files and workflow
 
-- **Plugin files:** `index.html`, `banks.js` (the word banks and the ten levels built from them), `words.js` (the pure word logic, tested by `node --test`), `game.js`, `style.css`. The manifest is `kinwall-plugin.json`. The hello-world starter's README documents each file.
+- **Plugin files:** `index.html`, `banks.js` (the word banks and the ten levels built from them), `words.js` (the pure word logic, list categories and the `addList`/`archiveList` actions, tested by `node --test`), `game.js`, `style.css`. The manifest is `kinwall-plugin.json`. The hello-world starter's README documents each file.
 - **Preview:** run `python3 -m http.server 8000` and open `http://localhost:8000/dev/`. It stands in for Kinwall: it has a member picker and a theme switch, saves to its own storage, and logs every message.
 - **Package:** `scripts/package.sh` builds `kinwall-plugin.zip`. The limits are 5 MB zipped, and 10 MB, 200 files and 2 MB per file unpacked. Only `html js mjs css json txt svg png jpg jpeg gif webp mp3 ogg wav m4a woff woff2` files are served.
 - **Release:** publish a GitHub release tagged `v<version>`. `.github/workflows/release.yml` attaches the zip.

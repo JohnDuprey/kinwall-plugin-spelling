@@ -201,6 +201,9 @@ input.tile.shown { border-color: var(--fix-ink); background: var(--fix-bg); colo
 .sentences label { display: flex; align-items: center; gap: 12px; }
 .sentences label span { flex: 0 0 7.5em; overflow-wrap: anywhere; }
 .sentences input { flex: 1; min-width: 0; margin-top: 0; }
+.sentences select { flex: 0 1 12em; min-width: 0; margin-top: 0; }
+@media (max-width: 600px) { .sentences label { flex-wrap: wrap; } .sentences select { flex: 1 1 100%; } }
+.pattern small.rule { font-size: 0.85rem; }
 .error { min-height: 1.2em; color: var(--miss-ink); font-weight: 800; }
 .form .row-buttons { justify-content: flex-start; }
 :root[data-room~="tiny"] .kbd { gap: 4px; padding: 4px 6px 6px; }

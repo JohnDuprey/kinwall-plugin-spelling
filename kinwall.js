@@ -13,6 +13,14 @@
 //   await Kinwall.speak('friend', { rate: 0.8, lang: 'en-US' })   // Kinwall says it; resolves when done
 //   Kinwall.stopSpeaking()
 //   Kinwall.close()                      // back to the Activities page
+//   const todo = await Kinwall.actions() // requests other apps sent for this person (your manifest's
+//                                        //   "actions"), oldest first: [{ id, action, input, createdAt }];
+//                                        //   { shared: true } for the family's; [] on older Kinwall
+//   await Kinwall.done(todo[0].id)       // applied (or dropped): Kinwall deletes it
+//   Kinwall.onActions(() => { ... })     // something changed while open: call actions() again
+//
+// Actions come from outside the plugin: check each input yourself, and apply it so that doing it
+// twice changes nothing more (if done() fails, it comes back next time).
 //
 // Speech: use the page's own speechSynthesis when it has one (more control over voices); Android's
 // WebView has none, so there use Kinwall.speak when ctx.canSpeak is true.
@@ -25,6 +33,7 @@
   const pending = new Map()
   let gotContext
   const context = new Promise(resolve => { gotContext = resolve })
+  const onActions = []
 
   window.addEventListener('message', e => {
     if (e.source !== window.parent) return
@@ -38,6 +47,7 @@
       gotContext(m.context)
       return
     }
+    if (m.type === 'actions') { onActions.forEach(f => { try { f() } catch (err) { console.error(err) } }); return }
     const p = pending.get(m.re)
     if (!p) return
     pending.delete(m.re)
@@ -66,6 +76,16 @@
       })
     },
     stopSpeaking() { send({ type: 'stopSpeaking' }) },
+    // Never rejects: [] when there's nothing, when offline (they wait for next time), or after a few
+    // seconds on an older Kinwall that doesn't answer.
+    actions(opts) {
+      return new Promise(resolve => {
+        const t = setTimeout(() => resolve([]), 5000)
+        call('actions', { shared: !!(opts && opts.shared) }).then(list => (Array.isArray(list) ? list : []), () => []).then(list => { clearTimeout(t); resolve(list) })
+      })
+    },
+    done(id) { return call('done', { item: String(id) }) },
+    onActions(callback) { if (typeof callback === 'function') onActions.push(callback) },
     close() { send({ type: 'close' }) },
   }
 })()

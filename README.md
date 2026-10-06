@@ -12,6 +12,10 @@ A spelling game for [Kinwall](https://github.com/JohnDuprey/kinwall), for ages 6
 
 A grown-up adds each kid's lists: the words (typed or pasted, one per line or with commas), an optional sentence for each word, an optional name and test date. Words can also be picked from the word banks. The newest list comes first on the kid's screen; old lists can be archived or deleted. Lists are saved for that kid.
 
+**Categories:** a school sheet often groups the words under headings, like "Double the consonant", "Drop the e, then add -ing" and "Just add -ing". In the words box, a line ending in ":" (or starting with "## ") starts a category, so a pasted sheet keeps its groups, and each word's menu under **Sentences** moves it to another category. A list with categories opens to **Mix of everything** plus a button for each category, with its own ⭐ count, like a level's patterns. Lists without categories work as before.
+
+**From other apps:** a grown-up can also send a list from outside the game, like asking an AI assistant connected to Kinwall to "add Maya's spelling words for Friday". See [Actions](#actions).
+
 **Who can edit lists and levels:** on a parent's phone or computer, **Lists and levels** shows on the home screen. Open Spelling practice there, pick the kid as who's playing, and add their words or set their levels. Wall screens and kids' own devices don't show it. On an older Kinwall that doesn't say whether it's a parent's device, a **Grown-ups: hold for lists and levels** button opens it after a two-second hold: it keeps casual taps out; it isn't a lock.
 
 ## Levels
@@ -33,6 +37,15 @@ Over 800 built-in words in ten levels, about 80 words each, grouped by spelling 
 - **Mix in earlier levels** (off by default): a level's mix also reviews the open levels before it, about 3 words in 10, missed and longest-ago words first.
 - **Coming from v1.0:** stars earned in the old grade banks count in the matching levels, and levels already passed are open.
 
+## Actions
+
+Spelling practice declares two [Kinwall plugin actions](https://github.com/JohnDuprey/kinwall-plugin-hello-world#actions), so other apps can send lists through Kinwall's REST API (`POST /api/plugins/spelling/actions/addList`), its MCP server (`run_activity_action`), Home Assistant or n8n. Kinwall keeps each one for that kid until they next open Spelling practice, which applies it then.
+
+- **`addList`** `{ title, words?, categories?, sentences?, testDate? }`: a new list, or more words for the kid's unarchived list with the same title (words already on it keep their stars). `words` is a flat list; `categories` is `[{ name, words, rule? }]` from the sheet's headings, with an optional short rule (up to 10 categories, 60 words in all). `sentences` is `{ word: sentence }` for **Use it in a sentence**, and `testDate` is `YYYY-MM-DD`.
+- **`archiveList`** `{ title }`: archives the kid's list with that title, stars kept.
+
+Input that can't be used is dropped, and sending the same list twice changes nothing more.
+
 ## Points for practice
 
 A plugin can't give points itself, but Kinwall can: **make it a chore** to give points for practice. Add a chore like "10 min of Spelling practice" (pick Spelling practice as the chore's activity). Kinwall times it, counting only while the game is on screen and the child is answering, and ticks the chore off when the time is reached.
@@ -50,7 +63,8 @@ In Kinwall, go to **Activities → Get more activities**. Spelling practice is l
 This plugin is built from [kinwall-plugin-hello-world](https://github.com/JohnDuprey/kinwall-plugin-hello-world); its README covers the SDK, the limits and how publishing works. `AGENTS.md` has the same rules for AI coding assistants.
 
 - **Preview:** `python3 -m http.server 8000`, then open http://localhost:8000/dev/. The **Device** menu switches between a parent's device, a wall or kid's device, and an older Kinwall.
-- **Test:** `node --test` runs the tests for the word logic in `words.js` (misspellings, blanks, the letter diff, stars, session picking, unlocking, review mixing and moving v1.0 progress) and the banks and levels in `banks.js`.
+- **Test:** `node --test` runs the tests for the word logic in `words.js` (misspellings, blanks, the letter diff, stars, session picking, unlocking, review mixing, moving v1.0 progress, categories, and the `addList` and `archiveList` actions) and the banks and levels in `banks.js`.
+- **Actions:** in the preview, **Send an action** queues one for whoever is playing, like `addList` with `{"title": "Week 5", "words": ["friend", "said"]}`.
 - **Package:** `scripts/package.sh` builds `kinwall-plugin.zip`.
 - **Release:** bump `version` in `kinwall-plugin.json` and publish a release tagged `v<version>`. The workflow attaches the package.
 
@@ -60,7 +74,7 @@ Everything is saved for whoever is playing, one value per list so each stays wel
 
 | Key | Value |
 |---|---|
-| `list-<id>` | `{ id, title, test, archived, created, n, words: [{ w, s, r, t }] }`: up to 60 words, each with its sentence, streak (`r`) and the session it was last asked in (`t`) |
+| `list-<id>` | `{ id, title, test, archived, created, n, words: [{ w, s, r, t, c }], categories }`: up to 60 words, each with its sentence, streak (`r`), the session it was last asked in (`t`) and its category (`c`, an index into `categories: [{ name, rule }]`; lists without categories have neither) |
 | `level-<L>` | `{ w: { word: [r, t] } }`: progress in level L, for words asked so far (under 4 KB even when full) |
 | `levels` | `{ open, cur, mix, n }`: levels open, the level practiced last (levels never close below it), "Mix in earlier levels", and the session counter |
 | `bank-<grade>` | v1.0's progress per grade: still read and counted in the matching levels, never written |

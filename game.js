@@ -3,7 +3,8 @@
 // kid, or from ten levels built from the word banks (banks.js). Word logic lives in words.js.
 //
 // Saved for whoever is playing:
-//   list-<id>  { id, title, test, archived, created, n, words: [{ w, s, r, t }] }  one per list
+//   list-<id>  { id, title, test, archived, created, n, words: [{ w, s, r, t, c }], categories? }  one
+//              per list; c: the word's category, an index into categories [{ name, rule? }]
 //   level-<L>  { w: { word: [r, t] } }  progress in level L (only words already asked)
 //   levels     { open, cur, mix, n }  levels open, the one practiced last, "mix in earlier levels",
 //              and the level-session counter (t below)
@@ -142,7 +143,7 @@ function renderHome() {
     card.className = 'list-card' + (k === 0 ? ' first' : '')
     card.innerHTML = `<div class="list-head"><div><div class="list-name">${esc(listName(l))}</div>
       <div class="dim">${l.words.length} word${l.words.length === 1 ? '' : 's'} · ${done} ⭐${l.test && l.title ? ` · test ${esc(dateText(l.test))}` : ''}</div></div></div>`
-    card.querySelector('.list-head').append(button('go', 'Practice', () => startSession({ kind: 'list', list: l })))
+    card.querySelector('.list-head').append(button('go', 'Practice', () => (l.categories?.length ? openListPage(l) : startSession({ kind: 'list', list: l }))))
     if (k === 0) { // the newest list: each word and how close it is to mastered
       const chips = document.createElement('div')
       chips.className = 'word-chips'
@@ -206,13 +207,35 @@ function openLevel(L) {
   show('level')
 }
 
+// ---------- A list with categories ----------
+// Like a level: "Mix of everything", then a button per category (the headings on the teacher's sheet).
+const catWords = (l, cat) => (cat === undefined ? l.words : l.words.filter(w => (Number.isInteger(w.c) && w.c < l.categories.length ? w.c : -1) === cat))
+function openListPage(l) {
+  el('level-title').textContent = listName(l)
+  const done = l.words.filter(w => Words.mastered(w.r)).length
+  el('level-fill').style.width = `${l.words.length ? Math.round((done / l.words.length) * 100) : 0}%`
+  el('level-sub').textContent = `${done} of ${l.words.length} words have ⭐` + (l.test ? ` · test ${dateText(l.test)}` : '')
+  const box = el('patterns')
+  box.textContent = ''
+  const count = items => `${items.filter(w => Words.mastered(w.r)).length} of ${items.length} ⭐`
+  box.append(button('pattern all', `<span>Mix of everything</span><small>${count(l.words)}</small>`, () => startSession({ kind: 'list', list: l })))
+  const groups = [...l.categories.map((c, i) => [c, i]), [{ name: 'Other words' }, -1]]
+  for (const [c, i] of groups) {
+    const items = catWords(l, i)
+    if (!items.length) continue
+    const b = button('pattern', `<span>${noBreakAtHyphens(c.name)}</span>${c.rule ? `<small class="rule">${esc(c.rule)}</small>` : ''}<small>${count(items)}</small>`, () => startSession({ kind: 'list', list: l, cat: i }))
+    box.append(b)
+  }
+  show('level')
+}
+
 // ---------- A session ----------
 let S = null // { source, items, queue, pos, n, right, firstTries, newStars, entry, tries }
 
 function startSession(source) {
   let items, picked, n
   if (source.kind === 'list') {
-    items = source.list.words
+    items = source.cat === undefined ? source.list.words : catWords(source.list, source.cat)
     picked = Words.pickSession(items)
     n = source.list.n = (source.list.n || 0) + 1
   } else {
@@ -527,7 +550,7 @@ function openList(l) {
   el('editlist-title').textContent = l ? 'Edit list' : 'New list'
   el('f-title').value = l?.title || ''
   el('f-test').value = l?.test || ''
-  el('f-words').value = l ? l.words.map(w => w.w).join('\n') : ''
+  el('f-words').value = l ? Words.listText(l) : ''
   sentences = Object.fromEntries((l?.words || []).map(w => [w.w.toLowerCase(), w.s]))
   el('f-error').textContent = ''
   el('f-archive').hidden = !l
@@ -540,12 +563,15 @@ function openList(l) {
   show('editlist')
 }
 
+// The words box's text: words, and category headings (Words.parseListText).
+const typed = () => Words.parseListText(el('f-words').value)
 function renderSentences() {
-  const words = Words.parseWords(el('f-words').value)
-  el('f-sentences-box').hidden = !words.length
+  const parsed = typed()
+  el('f-sentences-box').hidden = !parsed.words.length
   const box = el('f-sentences')
   box.textContent = ''
-  for (const w of words) {
+  for (const entry of parsed.words) {
+    const w = entry.w
     const k = w.toLowerCase()
     if (sentences[k] === undefined && Banks.SENTENCES[k]) sentences[k] = Banks.SENTENCES[k]
     const label = document.createElement('label')
@@ -554,6 +580,19 @@ function renderSentences() {
     Object.assign(input, { type: 'text', maxLength: 200, value: sentences[k] || '', placeholder: `A sentence with "${w}"` })
     input.oninput = () => { sentences[k] = input.value }
     label.append(input)
+    if (parsed.categories.length) { // move the word to another category: rewrites the words box
+      const sel = document.createElement('select')
+      sel.setAttribute('aria-label', `Category for ${w}`)
+      sel.innerHTML = '<option value="">No category</option>' + parsed.categories.map((c, i) => `<option value="${i}">${esc(c.name)}</option>`).join('')
+      sel.value = entry.c === undefined ? '' : String(entry.c)
+      sel.onchange = () => {
+        const words = parsed.words.map(e => (e === entry ? (sel.value === '' ? { w: e.w } : { w: e.w, c: Number(sel.value) }) : e))
+        // Keep every category, even one this empties, until the list is saved.
+        el('f-words').value = Words.listText({ words, categories: parsed.categories }) + parsed.categories.filter((c, i) => !words.some(e => e.c === i)).map(c => `\n\n${c.name}:`).join('')
+        renderSentences()
+      }
+      label.append(sel)
+    }
     box.append(label)
   }
 }
@@ -570,15 +609,17 @@ function renderBankPick() {
   const keepPattern = p.value
   p.innerHTML = bank.patterns.map(([name]) => `<option>${esc(name)}</option>`).join('')
   if (bank.patterns.some(([name]) => name === keepPattern)) p.value = keepPattern
-  const have = Words.parseWords(el('f-words').value).map(w => w.toLowerCase())
+  const have = typed().words.map(e => e.w.toLowerCase())
   const box = el('f-bank-words')
   box.textContent = ''
   for (const w of bank.patterns.find(([name]) => name === p.value)[1].split(' ')) {
     const on = have.includes(w.toLowerCase())
     const b = button('chip pickable' + (on ? ' strong' : ''), (on ? '✓ ' : '＋ ') + esc(w), () => {
-      const list = Words.parseWords(el('f-words').value)
-      const next = on ? list.filter(x => !Words.same(x, w)) : [...list, w]
-      el('f-words').value = next.join('\n')
+      // Added at the end (in the last category, if any); removed from wherever it is.
+      const text = el('f-words').value
+      el('f-words').value = on
+        ? text.split('\n').map(line => (/^#+\s|:\s*$/.test(line.trim()) ? line : line.split(/[,;]/).filter(x => !Words.same(x, w)).join(','))).join('\n')
+        : `${text.replace(/\s*$/, '')}\n${w}`.replace(/^\n/, '')
       renderSentences()
       renderBankPick()
     })
@@ -590,13 +631,15 @@ el('f-grade').onchange = () => { el('f-pattern').value = ''; renderBankPick() }
 el('f-pattern').onchange = renderBankPick
 
 el('f-save').onclick = async () => {
-  const names = Words.parseWords(el('f-words').value)
-  if (!names.length) { el('f-error').textContent = 'Add at least one word.'; return el('f-words').focus() }
+  const parsed = typed()
+  if (!parsed.words.length) { el('f-error').textContent = 'Add at least one word.'; return el('f-words').focus() }
   const l = editing || { id: Date.now().toString(36), created: Date.now(), archived: false, n: 0, words: [] }
   if (!editing && lists.length >= 90) { el('f-error').textContent = 'That\'s a lot of lists! Delete an old one first.'; return }
-  const next = { ...l, title: el('f-title').value.trim().slice(0, 40), test: el('f-test').value || '', words: Words.mergeWords(names, l.words, names.map(w => sentences[w.toLowerCase()] || '')) }
-  // keep each word's last-asked session too
-  next.words.forEach(w => { const was = l.words.find(o => Words.same(o.w, w.w)); if (was?.t) w.t = was.t })
+  // Categories keep the rule text they came with (from an app that sent the list), matched by name.
+  const categories = parsed.categories.map(c => ({ ...(l.categories || []).find(o => Words.same(o.name, c.name)), name: c.name }))
+  const next = { ...l, title: el('f-title').value.trim().slice(0, 40), test: el('f-test').value || '', words: Words.buildWords(parsed.words, l.words, w => sentences[w.toLowerCase()] || '') }
+  if (categories.length) next.categories = categories
+  else delete next.categories
   el('f-save').disabled = true
   try {
     await save(`list-${next.id}`, next)
@@ -650,4 +693,32 @@ Kinwall.ready().then(async c => {
   lv = Words.cleanSettings(saved.levels, LV.length, Words.earnedOpen(LV, prog))
   if (!saved.levels) lv.n = Math.max(0, ...Object.entries(saved).filter(([k, v]) => /^bank-\d+$/.test(k) && v).map(([, v]) => v.n || 0))
   home()
+  applyActions()
+  Kinwall.onActions(applyActions)
 })
+
+// ---------- Actions ----------
+// Lists other apps sent through Kinwall for this kid (an assistant: "add Maya's words for Friday"),
+// declared in kinwall-plugin.json. Words.applyAction checks the input and merges, so one that
+// arrives twice changes nothing more; it's marked done once saved, or dropped if it can't be used.
+let applying = false
+async function applyActions() {
+  if (applying) return
+  applying = true
+  try {
+    for (const a of await Kinwall.actions()) {
+      try {
+        for (const l of Words.applyAction(lists, a)) {
+          await save(`list-${l.id}`, l)
+          lists = [...lists.filter(x => x.id !== l.id), l]
+        }
+        await Kinwall.done(a.id)
+      } catch (e) {
+        if (e.message === 'too big') await Kinwall.done(a.id).catch(() => {}) // can never fit: drop it
+        // otherwise offline: it's still waiting next time
+      }
+    }
+    if (screen === 'home') renderHome()
+    else if (screen === 'edit') renderEdit()
+  } finally { applying = false }
+}

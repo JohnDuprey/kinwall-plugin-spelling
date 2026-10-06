@@ -1,13 +1,17 @@
 // Spelling practice: the word logic. Pure functions only (no DOM, no saving), so test/words.test.js
 // can run them under node.
 //
-// A list is { id, title, test: 'YYYY-MM-DD' | '', archived, created, words: [{ w, s, r }] }: the word,
-// an optional sentence, and its streak (right the first time, this many times in a row, across
-// sessions). A word is mastered once its streak reaches MASTERED.
+// A list is { id, title, test: 'YYYY-MM-DD' | '', archived, created, words: [{ w, s, r, c }],
+// categories?: [{ name, rule? }] }: the word, an optional sentence, its streak (right the first time,
+// this many times in a row, across sessions) and its category (an index into categories; none on
+// lists from before categories, or words in no category). A word is mastered once its streak
+// reaches MASTERED. Categories are a school list's headings ("Drop the e, then add -ing").
 ;(function (root) {
   const MASTERED = 3
   const MAX_WORDS = 60
   const MAX_WORD = 30
+  const MAX_CATS = 10
+  const MAX_TITLE = 40
   const SESSION = 10
   const VOWELS = 'aeiou'
 
@@ -214,7 +218,127 @@
     return shuffle(picked, rand)
   }
 
-  const api = { UNLOCK, REVIEW, levelProgress, share, passed, earnedOpen, cleanSettings, afterSession, pickReview, levelSession, MASTERED, MAX_WORDS, SESSION, same, parseWords, mergeWords, distractors, blanks, diff, record, mastered, pickSession, questionType, shuffle, sortLists }
+
+  // ---------- Categories ----------
+
+  const inCat = (w, cats) => Number.isInteger(w.c) && w.c >= 0 && w.c < cats.length
+  /** Drops categories no word is in, renumbering the rest; words in none lose their `c`. */
+  function compact(words, categories) {
+    const map = []
+    const cats = []
+    categories.forEach((cat, i) => { if (words.some(w => w.c === i)) map[i] = cats.push(cat) - 1 })
+    return {
+      words: words.map(w => {
+        const { c, ...rest } = w
+        return Number.isInteger(c) && map[c] !== undefined ? { ...rest, c: map[c] } : rest
+      }),
+      categories: cats,
+    }
+  }
+
+  /** The editor's text: one word per line (or commas), and a line ending in ":" or starting with
+   *  "## " starts a category, like the headings on a teacher's sheet. Returns { words: [{ w, c }],
+   *  categories: [{ name }] }; words before any heading are in no category. */
+  function parseListText(text) {
+    const categories = []
+    const words = []
+    let c
+    for (const raw of String(text).split('\n')) {
+      const line = raw.trim()
+      const head = /^#+\s+(.+)$/.exec(line) || /^(.+):$/.exec(line)
+      if (head) {
+        const name = head[1].replace(/:$/, '').trim().replace(/\s+/g, ' ').slice(0, 60)
+        if (!name) continue
+        let i = categories.findIndex(x => same(x.name, name))
+        if (i < 0 && categories.length < MAX_CATS) i = categories.push({ name }) - 1
+        c = i < 0 ? undefined : i
+        continue
+      }
+      for (const w of parseWords(line)) if (!words.some(e => same(e.w, w))) words.push(c === undefined ? { w } : { w, c })
+    }
+    return compact(words.slice(0, MAX_WORDS), categories)
+  }
+
+  /** A list as the editor's text (parseListText reads it back). */
+  function listText(list) {
+    const cats = list.categories || []
+    const groups = [list.words.filter(w => !inCat(w, cats)).map(w => w.w).join('\n')]
+    cats.forEach((cat, i) => groups.push(`${cat.name}:\n` + list.words.filter(w => w.c === i).map(w => w.w).join('\n')))
+    return groups.filter(Boolean).join('\n\n')
+  }
+
+  /** A list's words from [{ w, c }], keeping the streak, sentence and last session of words that
+   *  were already on it. sentenceOf(word) gives a new sentence, or undefined to keep the old one. */
+  function buildWords(entries, old = [], sentenceOf = () => undefined) {
+    return entries.map(e => {
+      const was = old.find(o => same(o.w, e.w))
+      const given = sentenceOf(e.w)
+      const out = { w: e.w, s: String((given != null ? given : was ? was.s : '') || '').trim().slice(0, 200), r: was ? was.r : 0 }
+      if (was && was.t) out.t = was.t
+      if (e.c !== undefined) out.c = e.c
+      return out
+    })
+  }
+
+  // ---------- Actions (what other apps ask for, through Kinwall) ----------
+
+  const strings = v => (Array.isArray(v) ? v.filter(x => typeof x === 'string') : [])
+  const realDate = d => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d) && new Date(`${d}T12:00:00Z`).toISOString().slice(0, 10) === d
+  const newId = now => now.toString(36) + Math.random().toString(36).slice(2, 6)
+
+  /** Applies one queued action ({ action, input }) to this kid's lists. Returns the lists to save
+   *  ([] when there's nothing to do or the input can't be used). Idempotent: applying it again
+   *  changes nothing more.
+   *  addList { title, words?, categories?: [{ name, words, rule? }], sentences?: { word: sentence },
+   *    testDate?: 'YYYY-MM-DD' }: a new list, or more words for the unarchived list with that title
+   *    (a word already on it keeps its stars, and moves to the category it's given now).
+   *  archiveList { title }: archives the unarchived lists with that title. */
+  function applyAction(lists, item, now = Date.now()) {
+    const input = item && item.input && typeof item.input === 'object' && !Array.isArray(item.input) ? item.input : {}
+    const title = typeof input.title === 'string' ? input.title.trim().replace(/\s+/g, ' ').slice(0, MAX_TITLE) : ''
+    if (!title) return []
+    const live = lists.filter(l => !l.archived && same(l.title || '', title))
+    if (item.action === 'archiveList') return live.map(l => ({ ...l, archived: true }))
+    if (item.action !== 'addList') return []
+    const list = live[0]
+    const cats = list && list.categories ? list.categories.map(c => ({ ...c })) : []
+    const entries = list ? list.words.map(w => (inCat(w, cats) ? { w: w.w, c: w.c } : { w: w.w })) : []
+    const add = (w, c) => {
+      const i = entries.findIndex(e => same(e.w, w))
+      if (i >= 0) { if (c !== undefined) entries[i].c = c }
+      else if (entries.length < MAX_WORDS) entries.push(c === undefined ? { w } : { w, c })
+    }
+    for (const cat of Array.isArray(input.categories) ? input.categories : []) {
+      if (!cat || typeof cat.name !== 'string' || !cat.name.trim()) continue
+      const name = cat.name.trim().replace(/\s+/g, ' ').slice(0, 60)
+      let ci = cats.findIndex(x => same(x.name, name))
+      if (ci < 0) {
+        if (cats.length >= MAX_CATS) continue
+        ci = cats.push({ name }) - 1
+      }
+      if (typeof cat.rule === 'string' && cat.rule.trim()) cats[ci].rule = cat.rule.trim().slice(0, 200)
+      for (const w of parseWords(strings(cat.words).join('\n'))) add(w, ci)
+    }
+    for (const w of parseWords(strings(input.words).join('\n'))) add(w)
+    if (!entries.length) return []
+    if (!list && lists.length >= 90) return [] // the editor's cap
+    const sentences = {}
+    if (Array.isArray(input.sentences)) strings(input.words).forEach((w, i) => { if (typeof input.sentences[i] === 'string') sentences[w.trim().toLowerCase()] = input.sentences[i] })
+    else if (input.sentences && typeof input.sentences === 'object') for (const [w, s] of Object.entries(input.sentences)) if (typeof s === 'string') sentences[w.trim().toLowerCase()] = s
+    const built = compact(buildWords(entries, list ? list.words : [], w => sentences[w.toLowerCase()]), cats)
+    const next = {
+      ...(list || { id: newId(now), created: now, archived: false, n: 0 }),
+      title,
+      test: realDate(input.testDate) ? input.testDate : list ? list.test || '' : '',
+      words: built.words,
+    }
+    if (built.categories.length) next.categories = built.categories
+    else delete next.categories
+    if (list && JSON.stringify(next) === JSON.stringify(list)) return [] // nothing new
+    return [next]
+  }
+
+  const api = { UNLOCK, REVIEW, levelProgress, share, passed, earnedOpen, cleanSettings, afterSession, pickReview, levelSession, MASTERED, MAX_WORDS, SESSION, same, parseWords, mergeWords, distractors, blanks, diff, record, mastered, pickSession, questionType, shuffle, sortLists, MAX_CATS, compact, parseListText, listText, buildWords, applyAction }
   if (typeof module !== 'undefined' && module.exports) module.exports = api
   else root.Words = api
 })(this)
