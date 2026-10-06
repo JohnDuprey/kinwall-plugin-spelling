@@ -3,7 +3,7 @@
 A spelling game for [Kinwall](https://github.com/JohnDuprey/kinwall), for ages 6 to 11. Kids practice this week's spelling list, or 1st to 5th grade words, and earn stars as words stick. Kinwall says each word out loud and never shows it, just like a spelling test.
 
 - **Three kinds of questions, mixed:** **Type it** (spell the whole word), **Pick it** (choose the right spelling from look-alike misspellings) and **Fill in the missing letters** (the tricky parts are blanked). New words start with picking and filling in; practiced words get typed.
-- **Hear it again:** a 🔊 button repeats the word, and **Use it in a sentence** reads the sentence when there is one. Words that sound like another word (their, there) come with a sentence, said right after the word.
+- **Hear it again:** a 🔊 button repeats the word, and **Use it in a sentence** reads the sentence when there is one. Words that sound like another word (their, there) come with a sentence, and their **Use it in a sentence** button is highlighted so a kid knows to tap it.
 - **Kind corrections:** a missed **Type it** shows what the child wrote over the right spelling, with the differences marked, then they type it the right way to go on. Missed words come back later in the same session. No timers, no losing.
 - **Stars:** a word is ⭐ mastered after it's spelled right the first time 3 times in a row, across sessions. A session is 10 words (or the whole list, if it's shorter), with a friendly summary at the end.
 

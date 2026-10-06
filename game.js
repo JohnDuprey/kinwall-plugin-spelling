@@ -244,11 +244,12 @@ function ask() {
   sayWord()
 }
 
-/** The word; then its sentence too when it sounds like another word (their, there). */
-async function sayWord() {
+/** Says the word. A word that sounds like another (their, there) only points at its sentence button,
+ * which the kid taps when they want it. */
+function sayWord() {
   const word = S.word
-  await say(word.w, { word: true })
-  if (word.s && Banks.soundsLike(word.w).length && S.word === word && screen === 'play') { await sleep(300); if (S.word === word) say(word.s) }
+  el('sentence').classList.toggle('nudge', !!word.s && Banks.soundsLike(word.w).length > 0)
+  return say(word.w, { word: true })
 }
 el('say').onclick = () => say(S.word.w, { word: true })
 el('sentence').onclick = () => say(S.word.s)

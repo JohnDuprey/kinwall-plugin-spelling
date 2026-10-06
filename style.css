@@ -41,6 +41,7 @@ main { min-height: 100vh; display: flex; flex-direction: column; align-items: ce
 .go { min-height: 64px; padding: 12px 30px; border: none; border-radius: 999px; background: var(--kw-accent); color: var(--kw-accent-ink); font-size: 1.4rem; }
 .pill { min-height: 52px; padding: 10px 20px; border: 2px solid var(--kw-border); border-radius: 999px; background: var(--kw-card); font-size: 1.1rem; }
 .pill.danger { color: var(--miss-ink); }
+.pill.nudge { border-color: var(--kw-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--kw-accent) 30%, transparent); } /* sounds like another word: the sentence tells which */
 .row-buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
 
 /* Home */
