@@ -15,7 +15,7 @@ A grown-up adds each kid's lists: the words (typed or pasted, one per line or wi
 
 ## Grade banks
 
-Over 750 built-in words, about 150 for each grade from 1st to 5th, grouped by spelling pattern: short and long vowels, blends and digraphs, silent e, vowel teams, r-controlled vowels, double letters, -ed and -ing, plurals, prefixes and suffixes, sound-alikes, tricky words and more. Kids can practice a whole grade (a mix of everything) or one pattern, with no setup. Each session draws the words practiced least and longest ago, plus a few recently missed, so a kid works through the whole bank over time instead of seeing the same few. The lists were written for this plugin from common words and patterns.
+Over 800 built-in words, about 160 for each grade from 1st to 5th, grouped by spelling pattern: short and long vowels, blends and digraphs, silent e, vowel teams, r-controlled vowels, double letters, suffixes (-s, -ing, -ed, -er and -est, -y, -ly, -ful, -less, -ness, -ize and more), plurals, prefixes, sound-alikes, tricky words and more. Kids can practice a whole grade (a mix of everything) or one pattern, with no setup. Each session draws the words practiced least and longest ago, plus a few recently missed, so a kid works through the whole bank over time instead of seeing the same few. The lists were written for this plugin from common words and patterns.
 
 ## Points for practice
 

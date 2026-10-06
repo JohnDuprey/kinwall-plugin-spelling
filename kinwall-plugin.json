@@ -1,13 +1,19 @@
 {
   "id": "spelling",
   "name": "Spelling practice",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Practice this week's spelling words, or 1st to 5th grade words by pattern. Hear each word, then type it, pick the right spelling or fill in the missing letters. A grown-up adds the list; stars are saved for each child.",
   "entry": "index.html",
   "emoji": "🐝",
   "color": "#F5C84C",
-  "categories": ["Spelling", "Learn to read"],
-  "ages": { "min": 6, "max": 11 },
+  "categories": [
+    "Spelling",
+    "Learn to read"
+  ],
+  "ages": {
+    "min": 6,
+    "max": 11
+  },
   "author": "Kinwall",
   "homepage": "https://github.com/JohnDuprey/kinwall-plugin-spelling"
 }

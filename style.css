@@ -103,6 +103,24 @@ input.tile.shown { border-color: var(--fix-ink); background: var(--fix-bg); colo
 .feedback { min-height: 1.6em; font-size: 1.3rem; font-weight: 800; }
 .feedback.good { color: var(--good-ink); }
 @keyframes shake { 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+/* Short: the on-screen keyboard is up (Kinwall fits the activity above it) or a phone is on its side.
+   Everything tightens so the word to hear, the box and Check stay in view without scrolling. */
+@media (max-height: 460px) {
+  header { min-height: 44px; padding: 2px 10px; }
+  .icon { width: 40px; height: 40px; font-size: 1.2rem; }
+  main { padding: 48px 12px 8px; gap: 8px; }
+  .screen { gap: 8px; }
+  .hear { gap: 10px; }
+  .say { width: 52px; height: 52px; font-size: 1.5rem; }
+  .ask { font-size: 1.1rem; }
+  .type { flex-wrap: nowrap; gap: 8px; }
+  .spell { min-height: 52px; padding: 4px 12px; font-size: 1.6rem; }
+  .type .go, .fill .go { flex: none; min-height: 52px; padding: 8px 22px; font-size: 1.2rem; }
+  .fix { gap: 6px; }
+  .compare { gap: 4px; padding: 6px 12px; }
+  .letters { font-size: 1.6rem; }
+  .tile { height: 48px; }
+}
 @media (prefers-reduced-motion: reduce) { .choice.wrong { animation: none; } .hold.holding .hold-fill { transition: none; } }
 [data-reduced-motion] .choice.wrong { animation: none; }
 
